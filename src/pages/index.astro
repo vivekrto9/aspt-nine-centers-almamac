@@ -1,0 +1,163 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { loadPublicPageContent } from "../builder/public-page.ts";
+import Header from "../components/shared/Header.astro";
+import Footer from "../components/shared/Footer.astro";
+import HomeHero from "../components/home/sections/HomeHero.astro";
+import BodygraphGeneratorSection from "../components/home/sections/BodygraphGeneratorSection.astro";
+import NineCentresSection from "../components/home/sections/NineCentresSection.astro";
+import FourConceptsSection from "../components/home/sections/FourConceptsSection.astro";
+import FiveTypesSection from "../components/home/sections/FiveTypesSection.astro";
+import ThreeReadingsSection from "../components/home/sections/ThreeReadingsSection.astro";
+import HowItRunsSection from "../components/home/sections/HowItRunsSection.astro";
+import ClientLettersSection from "../components/home/sections/ClientLettersSection.astro";
+import FaqSection from "../components/home/sections/FaqSection.astro";
+import ArticlesSection from "../components/home/sections/ArticlesSection.astro";
+import FinalCtaSection from "../components/home/sections/FinalCtaSection.astro";
+import { localizePath } from "../data/localization-contract.ts";
+
+import type { BuilderEditAttributes } from "../builder/builder.ts";
+
+export const prerender = false;
+
+const {
+  content,
+  locale,
+  builder,
+  builderPage,
+  chromePage,
+  reviewTargets,
+  builderEdit,
+  chromeEdit,
+} = await loadPublicPageContent(Astro, "home");
+
+const toDataset = (
+  attributes: BuilderEditAttributes,
+): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(attributes)
+      .filter((entry): entry is [string, string | true] => entry[1] !== undefined)
+      .map(([key, value]) => [key, value === true ? "true" : value]),
+  );
+
+const seoContent = {
+  seo_title: content.seo_title || "Nine Centres — Field Almanac Human Design",
+  seo_description: content.seo_description || "A map of how you are built to decide, drawn from your birth date, time and place.",
+  seo_canonical_path: content.seo_canonical_path || "/",
+  seo_robots: content.seo_robots || "index,follow",
+  og_title: content.og_title || "Nine Centres — Human Design Chart & Readings",
+  og_description: content.og_description || "Generate your free bodygraph. Understand your energy type, inner authority, and 9 centres.",
+  og_image: content.og_image,
+  og_image_alt: content.og_image_alt || "Nine Centres Human Design Diagram",
+  twitter_card: content.twitter_card || "summary_large_image",
+  twitter_title: content.twitter_title || "Nine Centres — Human Design",
+  twitter_description: content.twitter_description || "Calculate your Human Design chart and explore your energy mechanics.",
+  twitter_image: content.twitter_image,
+};
+
+---
+
+<BaseLayout
+  seo={seoContent}
+  title="Nine Centres — Your chart already knows how you were built to decide."
+  builderToolbar={{
+    launcherEnabled: builder.launcherEnabled,
+    studioModeEnabled: builder.studioModeEnabled,
+    collection: builder.collection,
+    entry: builder.entry,
+    locale: builder.locale,
+    csrfToken: builder.csrfToken,
+    canPublish: builder.canPublish,
+    seo: seoContent,
+    hasSavedDraft: builderPage.hasSavedDraft || chromePage.hasSavedDraft,
+    reviewTargets,
+  }}
+>
+  <div id="top" class="site-wrap">
+    <Header
+      brandName={content.brand_name || "Nine Centres"}
+      brandEdit={toDataset(chromeEdit("brand_name"))}
+    />
+
+    <main id="site-main-content">
+      <div class="almanac-lead-grid">
+        <HomeHero
+          dateline={content.hero_kicker || "Charts read by hand · one at a time"}
+          body={content.hero_body}
+          subtext={content.hero_subtext}
+          sideNote={content.hero_side_note}
+          kickerEdit={toDataset(builderEdit("hero_kicker"))}
+          titleEdit={toDataset(builderEdit("hero_title"))}
+          bodyEdit={toDataset(builderEdit("hero_body"))}
+          subtextEdit={toDataset(builderEdit("hero_subtext"))}
+          sideNoteEdit={toDataset(builderEdit("hero_side_note"))}
+        />
+        <BodygraphGeneratorSection
+          resultHref={localizePath("/human-design", locale)}
+          title={content.generator_title}
+          description={content.generator_body}
+          titleEdit={toDataset(builderEdit("generator_title"))}
+          descriptionEdit={toDataset(builderEdit("generator_body"))}
+        />
+      </div>
+
+      <!-- 01. Plate Diagram Section -->
+      <NineCentresSection eyebrow={content.nine_centres_eyebrow} title={content.nine_centres_title} eyebrowEdit={toDataset(builderEdit("nine_centres_eyebrow"))} titleEdit={toDataset(builderEdit("nine_centres_title"))} />
+
+      <!-- 02. Vocabulary Section -->
+      <FourConceptsSection eyebrow={content.concepts_eyebrow} title={content.concepts_title} eyebrowEdit={toDataset(builderEdit("concepts_eyebrow"))} titleEdit={toDataset(builderEdit("concepts_title"))} />
+
+      <!-- 03. Five Types Section -->
+      <FiveTypesSection eyebrow={content.types_eyebrow} title={content.types_title} hint={content.types_hint} eyebrowEdit={toDataset(builderEdit("types_eyebrow"))} titleEdit={toDataset(builderEdit("types_title"))} hintEdit={toDataset(builderEdit("types_hint"))} />
+
+      <!-- 04. Three Readings Section -->
+      <ThreeReadingsSection eyebrow={content.readings_eyebrow} title={content.readings_title} note={content.readings_note} eyebrowEdit={toDataset(builderEdit("readings_eyebrow"))} titleEdit={toDataset(builderEdit("readings_title"))} noteEdit={toDataset(builderEdit("readings_note"))} />
+
+      <!-- 05. How It Runs Section -->
+      <HowItRunsSection eyebrow={content.how_eyebrow} title={content.how_title} eyebrowEdit={toDataset(builderEdit("how_eyebrow"))} titleEdit={toDataset(builderEdit("how_title"))} />
+
+      <!-- Client Letters / Testimonials Section -->
+      <ClientLettersSection eyebrow={content.letters_eyebrow} eyebrowEdit={toDataset(builderEdit("letters_eyebrow"))} />
+
+      <!-- 06. Questions / FAQ Section -->
+      <FaqSection eyebrow={content.faq_eyebrow} title={content.faq_title} eyebrowEdit={toDataset(builderEdit("faq_eyebrow"))} titleEdit={toDataset(builderEdit("faq_title"))} />
+
+      <!-- 07. Writing / Articles Section -->
+      <ArticlesSection eyebrow={content.articles_eyebrow} title={content.articles_title} viewAll={content.articles_view_all} eyebrowEdit={toDataset(builderEdit("articles_eyebrow"))} titleEdit={toDataset(builderEdit("articles_title"))} viewAllEdit={toDataset(builderEdit("articles_view_all"))} />
+
+      <!-- Final CTA Section -->
+      <FinalCtaSection
+        title={content.final_cta_title}
+        subtitle={content.footer_note || "Free, sent within a day."}
+        buttonText={content.final_cta_button}
+        buttonHref={localizePath("/#chart", locale)}
+        titleEdit={toDataset(builderEdit("final_cta_title"))}
+        subtitleEdit={toDataset(builderEdit("footer_note"))}
+        buttonEdit={toDataset(builderEdit("final_cta_button"))}
+      />
+    </main>
+
+    <Footer
+      brandName={content.footer_brand_name || "Nine Centres"}
+      brandEdit={toDataset(chromeEdit("footer_brand_name"))}
+      noteEdit={toDataset(builderEdit("footer_note"))}
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .almanac-lead-grid {
+    width: min(1200px, calc(100% - 52px));
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+    align-items: start;
+  }
+
+  .almanac-lead-grid > :first-child { border-right: 1px solid var(--color-subtle-border); }
+
+  @media (max-width: 900px) {
+    .almanac-lead-grid { width: min(100% - 32px, 1200px); grid-template-columns: 1fr; }
+    .almanac-lead-grid > :first-child { border-right: 0; border-bottom: 1px solid var(--color-subtle-border); }
+  }
+</style>

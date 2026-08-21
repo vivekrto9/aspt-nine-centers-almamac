@@ -1,0 +1,13 @@
+-- Base template runtime schema reference.
+-- EmDash core tables are managed by the EmDash Cloudflare integration and
+-- mirrored in migrations/0000_emdash_schema_bootstrap.sql.
+--
+-- Generated-site starter tables are applied by migrations/0001_base_runtime.sql:
+-- - ap_runtime_config
+-- - ap_business_settings
+-- - ap_admin_sessions
+-- - ap_admin_sso_exchanges
+-- Human Design generated readings are applied by migrations/0008_human_design_readings.sql:
+-- - ap_human_design_readings
+-- Human Design paid-reading orders are applied by migrations/0009_human_design_orders.sql:
+-- - ap_human_design_orders

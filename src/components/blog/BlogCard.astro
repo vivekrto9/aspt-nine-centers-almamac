@@ -1,0 +1,117 @@
+---
+import type { BlogArticle } from "../../data/blog-articles.ts";
+import { getLocaleFromUrl, localizePath } from "../../data/localization-contract.ts";
+
+interface Props {
+  article: BlogArticle;
+}
+
+const { article } = Astro.props;
+const locale = getLocaleFromUrl(Astro.request.url);
+---
+
+<article class="blog-article-card" data-article-slug={article.slug}>
+  <a href={localizePath(`/blog/${article.slug}`, locale)} class="card-inner-link">
+    <div class="card-thumb">
+      <span class="card-tag">{article.tag}</span>
+    </div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="card-date">{article.date}</span>
+        <span class="card-author">&middot; {article.author}</span>
+      </div>
+      <h2 class="card-title">{article.title}</h2>
+      <p class="card-excerpt">{article.excerpt}</p>
+      <div class="card-footer">
+        <span class="read-more-btn">Read guide &rarr;</span>
+      </div>
+    </div>
+  </a>
+</article>
+
+<style>
+  .blog-article-card {
+    display: flex;
+    flex-direction: column;
+    border: 1.5px solid #16203C;
+    background: #E7E9EF;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .blog-article-card:hover {
+    box-shadow: 10px 10px 0 #B62F49;
+    transform: translate(-2px, -2px);
+  }
+
+  .card-inner-link {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .card-thumb {
+    aspect-ratio: 16 / 9;
+    background: #2B45C8;
+    border-bottom: 1.5px solid #16203C;
+    display: flex;
+    align-items: flex-end;
+    padding: 16px;
+  }
+
+  .card-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+  }
+
+  .card-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .card-meta {
+    font-size: 12px;
+    color: #7C87A0;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+    margin: 0 0 12px;
+  }
+
+  .card-excerpt {
+    font-size: 14.5px;
+    line-height: 1.48;
+    color: #3C4661;
+    margin: 0 0 24px;
+    flex: 1;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid rgba(10, 16, 48, 0.12);
+    padding-top: 14px;
+  }
+
+  .read-more-btn {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #2B45C8;
+  }
+</style>

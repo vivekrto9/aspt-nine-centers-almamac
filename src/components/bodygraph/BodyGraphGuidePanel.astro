@@ -1,0 +1,285 @@
+---
+import UnlockReadingCard from "./UnlockReadingCard.astro";
+
+interface PropertyItem { label: string; value: string }
+interface ReadingSection { title: string; content: string; paragraphs: string[] }
+interface AboutDetail { key: string; sections: ReadingSection[] }
+interface ChartView {
+  type: string;
+  strategy: string;
+  authority: string;
+  profile: string;
+  definition: string;
+  definedCenters: string[];
+  activeGates: number[];
+  channels: unknown[];
+  aboutDetails?: Record<string, AboutDetail>;
+}
+interface Props { properties: PropertyItem[]; chart?: ChartView; unlocked?: boolean; upgradeHref?: string }
+
+const { properties, chart, unlocked = false, upgradeHref = "/#readings" } = Astro.props;
+const propertyValue = (label: string, fallback: string) => properties.find((item) => item.label === label)?.value || fallback;
+const energyType = chart?.type || propertyValue("Type", "Generator");
+const strategy = chart?.strategy || propertyValue("Strategy", "Wait to Respond");
+const authority = chart?.authority || propertyValue("Authority", "Emotional");
+const profile = chart?.profile || propertyValue("Profile", "3/5");
+const definition = chart?.definition || propertyValue("Definition", "Single Definition");
+const energyImageKey: Record<string, string> = {
+  generator: "generator",
+  "manifesting generator": "manifesting-generator",
+  manifestor: "manifestor",
+  projector: "projector",
+  reflector: "reflector",
+};
+const energyImage = `https://astro-vedicrishi-in.b-cdn.net/human-design/body-type-compatibility/cards/${energyImageKey[energyType.toLowerCase()] || "generator"}.png`;
+const providerSection = (id: string) => chart?.aboutDetails?.[id]?.sections?.[0];
+const withProviderReading = <T extends { id: string; label: string; body: string; items: string[][] }>(section: T) => {
+  const provider = providerSection(section.id);
+  if (!provider) return section;
+  const [body, ...rest] = provider.paragraphs.length ? provider.paragraphs : [provider.content];
+  return {
+    ...section,
+    body: body || section.body,
+    items: rest.length
+      ? rest.slice(0, 4).map((paragraph, index) => [index === 0 ? provider.title : `More about ${section.label.toLowerCase()}`, paragraph])
+      : section.items,
+  };
+};
+
+const learnItems = [
+  ["How to Begin", "Start with the body graph in the center. First notice which centres are coloured and which are open. Then look at the two side columns to see your Design and Personality activations."],
+  ["Why This Chart Matters", "This chart helps you understand where your energy is consistent, where you are more open to outside influence, and how you naturally process life, relationships, work, and decisions."],
+  ["The Body Graph", "The body silhouette is your Body Graph, a map of 9 energy centres connected by channels. Coloured shapes are defined. Outlined shapes are undefined or open."],
+  ["The Two Columns", "Design on the left is calculated from 88 days before birth and describes unconscious, body-level traits. Personality on the right is calculated at birth and describes conscious traits. Read both columns together."],
+  ["Reading the Numbers — e.g. 47.6", "Each number is a Gate.Line. The gate, numbered 1 to 64, is an activated archetypal theme. The line, numbered 1 to 6, shows how that gate tends to express itself."],
+  ["Gate vs Channel", "A gate is a specific point of energy or theme. A channel is created when both connected gates are activated, linking two centres into a consistent circuit."],
+  ["Hanging Gate", "If one end of a channel is activated but the other end is not, that is a hanging gate: an active theme that does not form a full channel."],
+  ["Defined vs Undefined Centres", "Defined centres work reliably and consistently. Undefined centres are flexible and receptive, changing with people, circumstances and environment."],
+];
+
+const centres = [
+  ["Head", "Inspiration, questions and mental pressure"],
+  ["Ajna", "Thinking, concepts and mental processing"],
+  ["Throat", "Communication, expression and action"],
+  ["G / Identity", "Identity, direction, love and sense of self"],
+  ["Ego / Will", "Willpower, value, commitment and material drive"],
+  ["Solar Plexus", "Emotions, emotional waves and sensitivity"],
+  ["Sacral", "Life-force energy, work energy, response and stamina"],
+  ["Spleen", "Instinct, intuition, timing and survival awareness"],
+  ["Root", "Pressure, stress, momentum and drive to move"],
+];
+
+const planets = [
+  ["☉", "Sun", "Your core life theme and strongest expression"],
+  ["⊕", "Earth", "What grounds and balances your core life theme"],
+  ["☽", "Moon", "What drives you and moves your energy"],
+  ["☊", "North Node", "Where life pulls you forward over time"],
+  ["☋", "South Node", "What feels familiar and already known"],
+  ["☿", "Mercury", "How you think, speak and express ideas"],
+  ["♀", "Venus", "Your values, preferences and way of relating"],
+  ["♂", "Mars", "Your drive, action and developing strength"],
+  ["♃", "Jupiter", "Growth, opportunity and supportive expansion"],
+  ["♄", "Saturn", "Lessons, responsibility and maturity"],
+  ["♅", "Uranus", "Uniqueness, change and unexpected expression"],
+  ["♆", "Neptune", "Subtle themes, mystery and deeper sensitivity"],
+  ["♇", "Pluto", "Deep change, truth and long-term transformation"],
+];
+
+const beginnerSections = [
+  {
+    id: "type",
+    label: "Type",
+    title: energyType,
+    body: `Your Type is ${energyType}. Use the strategy and authority shown in this chart as the practical starting point for working with your energy.`,
+    items: [["Aura mechanics", `Notice how ${energyType} energy affects the pace and quality of your interactions.`], ["Alignment signal", "Track which situations feel naturally supported and which repeatedly create resistance."], ["Practice", `Experiment with ${strategy} in low-stakes moments before applying it to larger choices.`]],
+  },
+  {
+    id: "strategy",
+    label: "Strategy",
+    title: strategy,
+    body: `Your chart's strategy is ${strategy}. It describes the way opportunities and action are designed to meet you with the least resistance.`,
+    items: [["Notice timing", "Observe when this strategy asks you to act, wait, respond, initiate, or seek recognition."], ["Reduce resistance", "Compare choices made through the strategy with choices made only from urgency or mental pressure."], ["Keep a record", "A short decision journal makes your own pattern easier to recognise over time."]],
+  },
+  {
+    id: "authority",
+    label: "Authority",
+    title: authority,
+    body: `Your authority is ${authority}. Authority is the body-based decision process to return to when the mind is uncertain.`,
+    items: [["Body before mind", "Let your authority's physical or energetic signal lead before building a mental explanation."], ["Start small", "Practice with ordinary choices where there is little pressure to produce the perfect answer."], ["Learn your signal", `Notice the repeatable way ${authority} authority communicates yes, no, or not yet for you.`]],
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    title: profile,
+    body: `Your profile is ${profile}. It describes the role and learning pattern through which your design is expressed and recognised.`,
+    items: [["First line", "The first number describes the conscious role you are more likely to recognise in yourself."], ["Second line", "The second number describes a body-level role that other people may notice first."], ["Read together", `The interaction between the two lines creates the distinct learning pattern of profile ${profile}.`]],
+  },
+  {
+    id: "definition",
+    label: "Definition",
+    title: definition,
+    body: `Your chart shows ${definition}. Definition describes how the defined centres in your bodygraph connect and process together.`,
+    items: [["Connectivity", "Definition shows whether the chart's defined centres form one connected circuit or separate groups."], ["Processing style", `Observe how ${definition} influences the way insights and energy move through your chart.`], ["Relationships", "Other people can temporarily bridge or amplify parts of a chart without changing its underlying design."]],
+  },
+  {
+    id: "planets",
+    label: "Planets",
+    title: "Planetary Activations",
+    body: "Planets describe the role each activated gate plays. The same gate can feel different depending on whether it is activated by the Sun, Moon, Mercury or another planet.",
+    items: [["Design", "The red column describes unconscious, body-level expression."], ["Personality", "The light column describes conscious qualities you are more likely to recognize."], ["Read together", "Both columns contribute to the complete chart."]],
+  },
+].map((section) => section.id === "planets" ? section : withProviderReading(section));
+
+const energyDetails = [
+  {
+    id: "type", label: "Type", value: energyType, title: "What your type is and what it means",
+    paragraphs: [`Your Human Design type is ${energyType}. Type describes the mechanics of your aura and the broad way your energy is designed to engage with other people and situations.`, `Use ${strategy} as the practical experiment for this type, then notice which choices create less resistance and greater alignment over time.`],
+  },
+  {
+    id: "profile", label: "Profile", value: profile, title: "What your profile is and what it means",
+    paragraphs: [`Your Human Design profile is ${profile}. Profile combines two line themes that describe how you learn, relate, and are perceived by others.`, "The full paid reading expands both lines and explains how their interaction appears in work, relationships, and decision-making."],
+  },
+  {
+    id: "strategy", label: "Strategy", value: strategy, title: "How your strategy guides action",
+    paragraphs: [`Your strategy is ${strategy}. Strategy is a practical way to meet life while reducing unnecessary resistance.`, "Experiment with it in ordinary, low-stakes situations before using it for larger decisions."],
+  },
+  {
+    id: "definition", label: "Definition", value: definition, title: "How your definition connects your energy",
+    paragraphs: [`Your chart has ${definition}. This describes the connectivity pattern between your defined centres.`, "A detailed reading explains where energy moves consistently and where relationships may bridge or amplify the chart."],
+  },
+  {
+    id: "authority", label: "Authority", value: authority, title: "How to use your inner authority",
+    paragraphs: [`Your inner authority is ${authority}. It is the chart's primary decision-making process and is more reliable than mental pros-and-cons alone.`, "Practice noticing how this authority communicates in smaller choices, where the signal is easier to observe."],
+  },
+].map((item) => {
+  const providerSections = chart?.aboutDetails?.[item.id]?.sections || [];
+  const visibleSections = unlocked ? providerSections : providerSections.slice(0, 1);
+  const provider = visibleSections[0];
+  return provider ? {
+    ...item,
+    title: provider.title || item.title,
+    paragraphs: provider.paragraphs.length ? provider.paragraphs : [provider.content].filter(Boolean),
+    sections: visibleSections,
+  } : { ...item, sections: [] as ReadingSection[] };
+});
+---
+
+<div class="hd-guide-workspace">
+  <nav class="hd-guide-primary-tabs" aria-label="Guide sections">
+    <button type="button" data-guide-tab="chart" aria-selected="true">Chart Guide</button>
+    <button type="button" data-guide-tab="beginner" aria-selected="false">Beginner's Guide</button>
+    <button type="button" data-guide-tab="energy" aria-selected="false">Your Energy Type</button>
+  </nav>
+
+  <aside class="hd-guide-panel" aria-label="Human Design chart guidance">
+   <div class="hd-guide-panel__viewport">
+    <section data-guide-panel="chart">
+      <nav class="hd-guide-secondary-tabs" aria-label="Chart guide views">
+        <button type="button" data-guide-subtab="learn" aria-selected="true">Learn</button>
+        <button type="button" data-guide-subtab="reference" aria-selected="false">Reference</button>
+      </nav>
+      <div data-guide-subpanel="learn">
+        <header class="hd-guide-intro"><p>Chart guide</p><h2>Your chart is a map of how your energy is wired.</h2><span>Start here to learn what each element means and how to make sense of what you see.</span></header>
+        <div class="hd-guide-lesson-list">
+          {learnItems.map(([title, body]) => <article><h3>{title}</h3><p>{body}</p></article>)}
+        </div>
+      </div>
+      <div data-guide-subpanel="reference" hidden>
+        <div class="hd-guide-reference-section"><h2>The 9 Centres</h2>{centres.map(([name, description]) => <div><strong>{name}</strong><span>{description}</span></div>)}</div>
+        <div class="hd-guide-reference-section hd-guide-planets"><h2>Planet Symbols</h2>{planets.map(([symbol, name, description]) => <div><i>{symbol}</i><strong>{name}</strong><span>{description}</span></div>)}</div>
+      </div>
+    </section>
+
+    <section data-guide-panel="beginner" hidden>
+      <nav class="hd-guide-secondary-tabs hd-guide-secondary-tabs--scroll" aria-label="Beginner guide topics">
+        {beginnerSections.map((section, index) => <button type="button" data-beginner-tab={section.id} aria-selected={index === 0}>{section.label}</button>)}
+      </nav>
+      {beginnerSections.map((section, index) => (
+        <div data-beginner-panel={section.id} hidden={index !== 0}>
+          <header class="hd-guide-intro"><p>Beginner's guide · {section.label}</p><h2>{section.title}</h2><span>{section.body}</span></header>
+          <div class="hd-guide-lesson-list">
+            {section.items.map(([title, body]) => <article><h3>{title}</h3><p>{body}</p></article>)}
+          </div>
+        </div>
+      ))}
+    </section>
+
+    <section data-guide-panel="energy" hidden>
+      <div data-energy-overview>
+        <div class="hd-energy-visual">
+          <img src={energyImage} alt={`${energyType} Human Design energy type`} loading="lazy" />
+          <div><p>Your energy type</p><strong>{energyType}</strong><span>{strategy}</span></div>
+        </div>
+        <div class="hd-energy-stats">
+          <div><strong>{chart?.definedCenters.length ?? 5}/9</strong><span>Defined centres</span></div>
+          <div><strong>{chart?.channels.length ?? 3}/36</strong><span>Active channels</span></div>
+          <div><strong>{chart?.activeGates.length ?? 14}/64</strong><span>Activated gates</span></div>
+        </div>
+        <div class="hd-energy-details">
+          {energyDetails.map((item) => <button type="button" data-energy-open={item.id}><span>{item.label}</span><strong>{item.value}</strong><i aria-hidden="true">→</i></button>)}
+        </div>
+        <div class="hd-energy-property-strip">
+          {properties.slice(0, 4).map((item) => <div><span>{item.label}</span><strong>{item.value}</strong></div>)}
+        </div>
+      </div>
+
+      <div class="hd-energy-reading" data-energy-reading hidden>
+        <header><button type="button" data-energy-back aria-label="Back to your energy type overview">←</button><p data-energy-reading-label>Type</p></header>
+        {energyDetails.map((item) => (
+          <article data-energy-detail={item.id} hidden>
+            <h2>{item.title}</h2>
+            {item.sections.length ? item.sections.map((section, sectionIndex) => (
+              <section class="hd-energy-reading-section">
+                {sectionIndex > 0 && section.title ? <h3>{section.title}</h3> : null}
+                {section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+              </section>
+            )) : item.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+            {!unlocked && <UnlockReadingCard upgradeHref={upgradeHref} />}
+          </article>
+        ))}
+      </div>
+    </section>
+   </div>
+  </aside>
+</div>
+
+<script>
+  document.querySelectorAll(".hd-guide-workspace").forEach((guide) => {
+    const viewport = guide.querySelector(".hd-guide-panel__viewport");
+    guide.querySelectorAll("[data-guide-tab]").forEach((button) => button.addEventListener("click", () => {
+      const id = button.getAttribute("data-guide-tab") || "chart";
+      guide.querySelectorAll("[data-guide-tab]").forEach((candidate) => candidate.setAttribute("aria-selected", String(candidate === button)));
+      guide.querySelectorAll("[data-guide-panel]").forEach((panel) => { if (panel instanceof HTMLElement) panel.hidden = panel.getAttribute("data-guide-panel") !== id; });
+      viewport?.scrollTo({ top: 0, behavior: "auto" });
+    }));
+    guide.querySelectorAll("[data-guide-subtab]").forEach((button) => button.addEventListener("click", () => {
+      const id = button.getAttribute("data-guide-subtab") || "learn";
+      guide.querySelectorAll("[data-guide-subtab]").forEach((candidate) => candidate.setAttribute("aria-selected", String(candidate === button)));
+      guide.querySelectorAll("[data-guide-subpanel]").forEach((panel) => { if (panel instanceof HTMLElement) panel.hidden = panel.getAttribute("data-guide-subpanel") !== id; });
+      viewport?.scrollTo({ top: 0, behavior: "auto" });
+    }));
+    guide.querySelectorAll("[data-beginner-tab]").forEach((button) => button.addEventListener("click", () => {
+      const id = button.getAttribute("data-beginner-tab") || "type";
+      guide.querySelectorAll("[data-beginner-tab]").forEach((candidate) => candidate.setAttribute("aria-selected", String(candidate === button)));
+      guide.querySelectorAll("[data-beginner-panel]").forEach((panel) => { if (panel instanceof HTMLElement) panel.hidden = panel.getAttribute("data-beginner-panel") !== id; });
+      viewport?.scrollTo({ top: 0, behavior: "auto" });
+    }));
+
+    const energyOverview = guide.querySelector("[data-energy-overview]");
+    const energyReading = guide.querySelector("[data-energy-reading]");
+    const energyLabel = guide.querySelector("[data-energy-reading-label]");
+    guide.querySelectorAll("[data-energy-open]").forEach((button) => button.addEventListener("click", () => {
+      const id = button.getAttribute("data-energy-open") || "type";
+      if (energyOverview instanceof HTMLElement) energyOverview.hidden = true;
+      if (energyReading instanceof HTMLElement) energyReading.hidden = false;
+      guide.querySelectorAll("[data-energy-detail]").forEach((detail) => { if (detail instanceof HTMLElement) detail.hidden = detail.getAttribute("data-energy-detail") !== id; });
+      if (energyLabel) energyLabel.textContent = button.querySelector("span")?.textContent || "Reading";
+      viewport?.scrollTo({ top: 0, behavior: "auto" });
+    }));
+    guide.querySelector("[data-energy-back]")?.addEventListener("click", () => {
+      if (energyOverview instanceof HTMLElement) energyOverview.hidden = false;
+      if (energyReading instanceof HTMLElement) energyReading.hidden = true;
+      viewport?.scrollTo({ top: 0, behavior: "auto" });
+    });
+  });
+</script>

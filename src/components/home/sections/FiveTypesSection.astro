@@ -1,0 +1,347 @@
+---
+import { TYPES } from "../../../data/human-design.constants.ts";
+
+const { eyebrow = "The five types", title = "Everybody is one of five", hint = "Open a step to read its strategy", eyebrowEdit = {}, titleEdit = {}, hintEdit = {} } = Astro.props;
+---
+
+<section id="types" class="five-types-section" data-five-types-section>
+  <div class="section-header-grid">
+    <span class="section-number">03</span>
+    <div class="section-title-wrap">
+      <p class="section-eyebrow" {...eyebrowEdit}>{eyebrow}</p>
+      <h2 class="section-heading" {...titleEdit}>{title}</h2>
+    </div>
+    <p class="section-hint" {...hintEdit}>{hint}</p>
+  </div>
+
+  <div class="types-container" data-types-container>
+    {TYPES.map((t, i) => (
+      <div
+        class={`type-row-wrapper type-row-${i + 1}`}
+        data-type-index={i}
+        style={`margin-left: ${i * 5}%; margin-right: ${(4 - i) * 2}%; transition: margin 0.35s ease;`}
+      >
+        <!-- Closed summary trigger -->
+        <button
+          type="button"
+          class="type-trigger"
+          data-type-trigger={i}
+          aria-expanded={i === 1 ? "true" : "false"}
+          style={i === 1 ? "display: none;" : "display: flex;"}
+        >
+          <span class="type-num">{t.num}</span>
+          <span class="type-title">{t.name}</span>
+          <span class="type-share">{t.share}</span>
+        </button>
+
+        <!-- Open expanded card (Generator default open i === 1) -->
+        <div
+          class="type-card-open"
+          data-type-content={i}
+          style={i === 1 ? "display: block;" : "display: none;"}
+        >
+          <div class="open-card-header">
+            <span class="open-num">{t.num}</span>
+            <span class="open-share">{t.share} of people</span>
+          </div>
+          <h3 class="open-title">{t.name}</h3>
+          <p class="open-body">{t.body}</p>
+
+          <div class="open-specs-grid">
+            <div class="spec-col spec-col-1">
+              <p class="spec-label">Strategy</p>
+              <p class="spec-value">{t.strategy}</p>
+            </div>
+            <div class="spec-col spec-col-2">
+              <p class="spec-label">Signature</p>
+              <p class="spec-value">{t.signature}</p>
+            </div>
+            <div class="spec-col spec-col-3">
+              <p class="spec-label not-self-label">Not-self</p>
+              <p class="spec-value">{t.notSelf}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
+
+<script is:inline>
+  (() => {
+    const triggers = document.querySelectorAll("[data-type-trigger]");
+    const wrappers = document.querySelectorAll(".type-row-wrapper");
+
+    triggers.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetIdx = btn.getAttribute("data-type-trigger");
+
+        wrappers.forEach((wrap) => {
+          const idx = wrap.getAttribute("data-type-index");
+          const trigger = wrap.querySelector(".type-trigger");
+          const content = wrap.querySelector(".type-card-open");
+
+          if (idx === targetIdx) {
+            if (trigger) {
+              trigger.style.display = "none";
+              trigger.setAttribute("aria-expanded", "true");
+            }
+            if (content) content.style.display = "block";
+          } else {
+            if (trigger) {
+              trigger.style.display = "flex";
+              trigger.setAttribute("aria-expanded", "false");
+            }
+            if (content) content.style.display = "none";
+          }
+        });
+      });
+    });
+  })();
+</script>
+
+<style>
+  .five-types-section {
+    padding: 104px 32px 0;
+  }
+
+  .section-header-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    align-items: end;
+    margin-bottom: 44px;
+  }
+
+  .section-number {
+    grid-column: 1 / span 2;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.72;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px #2B45C8;
+  }
+
+  .section-title-wrap {
+    grid-column: 4 / span 5;
+  }
+
+  .section-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #B62F49;
+    margin: 0 0 12px;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(28px, 3.6vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin: 0;
+  }
+
+  .section-hint {
+    grid-column: 10 / span 3;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 0;
+    text-align: right;
+  }
+
+  .types-container {
+    display: grid;
+    gap: 10px;
+  }
+
+  .type-trigger {
+    width: 100%;
+    background: transparent;
+    align-items: center;
+    gap: 24px;
+    padding: 20px 24px;
+    cursor: pointer;
+    border: 1.5px solid rgba(10, 16, 48, 0.3);
+    text-align: left;
+    transition: all 0.15s ease;
+  }
+
+  .type-trigger:hover {
+    border-color: #B62F49;
+    background: rgba(255, 107, 74, 0.04);
+  }
+
+  .type-num {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #7C87A0;
+  }
+
+  .type-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(18px, 2.2vw, 26px);
+    letter-spacing: -0.045em;
+    flex: 1;
+    color: var(--color-ink);
+  }
+
+  .type-share {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2B45C8;
+  }
+
+  .type-card-open {
+    background: #2B45C8;
+    color: #E7E9EF;
+    border: 1.5px solid #16203C;
+    box-shadow: 14px 14px 0 #B62F49;
+    padding: 34px 32px 30px;
+  }
+
+  .open-card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .open-num {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #D8DEEC;
+  }
+
+  .open-share {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+  }
+
+  .open-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(28px, 4vw, 54px);
+    line-height: 0.98;
+    letter-spacing: -0.05em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+
+  .open-body {
+    font-size: 19px;
+    line-height: 1.5;
+    margin: 0 0 30px;
+    max-width: 48ch;
+    text-wrap: pretty;
+  }
+
+  .open-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1.5px solid rgba(245, 241, 232, 0.4);
+  }
+
+  .spec-col {
+    padding: 18px 20px 0 0;
+    border-right: 1px solid rgba(245, 241, 232, 0.28);
+  }
+
+  .spec-col-2 {
+    padding-left: 20px;
+  }
+
+  .spec-col-3 {
+    border-right: none;
+    padding-left: 20px;
+    padding-right: 0;
+  }
+
+  .spec-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+    margin: 0 0 8px;
+  }
+
+  .spec-label.not-self-label {
+    color: #B62F49;
+  }
+
+  .spec-value {
+    font-size: 16px;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  @media (max-width: 900px) {
+    .section-header-grid {
+      grid-template-columns: 1fr;
+    }
+    .section-number, .section-title-wrap, .section-hint {
+      grid-column: span 1;
+      text-align: left;
+    }
+    .type-row-wrapper {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    .open-specs-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .spec-col {
+      border-right: none;
+      border-bottom: 1px solid rgba(245, 241, 232, 0.28);
+      padding: 12px 0;
+    }
+  }
+</style>
+
+<style>
+  .five-types-section { width: min(1200px, calc(100% - 52px)); margin: 0 auto; background: transparent; color: var(--color-ink); padding: 34px 0 74px; border-top: 1px solid var(--color-ink); }
+  .section-header-grid { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 20px; margin: 0 0 28px; }
+  .section-number { font-family: var(--font-mono); font-size: 0; color: var(--color-accent); }
+  .section-number::after { content: "§ II"; font-size: 10.5px; letter-spacing: 0.2em; }
+  .section-title-wrap { display: contents; }
+  .section-eyebrow { display: none; }
+  .section-heading { font-family: var(--font-display); font-size: 36px; font-weight: 500; line-height: 1.1; letter-spacing: 0; margin: 0; }
+  .section-hint { color: #5A6480; font-family: var(--font-mono); font-size: 10px; font-weight: 400; letter-spacing: 0.16em; margin: 0; text-transform: uppercase; }
+  .types-container { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 44px; border: 0; }
+  .type-row-wrapper { display: contents; margin: 0 !important; border: 0; }
+  .type-trigger { grid-column: 1; min-height: 56px; background: transparent; color: var(--color-ink); border: 0; border-bottom: 1px solid var(--color-subtle-border); padding: 16px 4px; }
+  .type-row-wrapper:first-child .type-trigger { border-top: 1px solid var(--color-ink); }
+  .type-trigger:hover { background: var(--color-ink); color: var(--color-paper); }
+  .type-num, .type-share, .open-share, .spec-label { font-family: var(--font-mono); font-weight: 400; }
+  .type-title { font-family: var(--font-display); font-size: 21px; font-weight: 400; letter-spacing: 0; }
+  .type-card-open { grid-column: 2; grid-row: 1 / span 5; background: var(--color-paper); color: var(--color-ink); border: 1px solid var(--color-ink); box-shadow: none; padding: 34px 32px; }
+  .open-card-header { margin-bottom: 12px; }
+  .open-num { display: none; }
+  .open-share { color: var(--color-accent); font-size: 10px; letter-spacing: 0.18em; }
+  .open-title { font-family: var(--font-display); font-size: 38px; font-weight: 500; line-height: 1.04; letter-spacing: 0; }
+  .open-body { color: var(--color-text-dark); font-size: 17.5px; line-height: 1.62; }
+  .open-specs-grid { border-top: 1px solid var(--color-ink); }
+  .spec-col { border-color: #B7BECE; }
+  .spec-label { color: #5A6480; font-size: 9.5px; }
+  .spec-value { font-size: 16px; }
+
+  @media (max-width: 900px) { .types-container { grid-template-columns: 1fr; } .type-trigger, .type-card-open { grid-column: 1; grid-row: auto; } }
+  @media (max-width: 760px) { .five-types-section { width: min(100% - 32px, 1200px); } .section-header-grid { grid-template-columns: auto 1fr; } .section-hint { grid-column: 2; } }
+</style>

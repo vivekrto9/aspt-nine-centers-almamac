@@ -1,0 +1,110 @@
+---
+import type { BlogArticle } from "../../data/blog-articles.ts";
+import { getLocaleFromUrl, localizePath } from "../../data/localization-contract.ts";
+
+interface Props {
+  articles: BlogArticle[];
+}
+
+const { articles } = Astro.props;
+const locale = getLocaleFromUrl(Astro.request.url);
+---
+
+<section class="related-section" data-blog-related-articles>
+  <div class="related-header">
+    <p class="related-eyebrow">CONTINUE READING</p>
+    <h2 class="related-title">Related guides & articles</h2>
+  </div>
+  <div class="related-grid">
+    {articles.map((rel) => (
+      <a href={localizePath(`/blog/${rel.slug}`, locale)} class="related-card">
+        <div class="related-thumb">
+          <span class="related-tag">{rel.tag}</span>
+        </div>
+        <h3 class="related-card-title">{rel.title}</h3>
+      </a>
+    ))}
+  </div>
+</section>
+
+<style>
+  .related-section {
+    border-top: 1.5px solid #16203C;
+    padding-top: 64px;
+  }
+
+  .related-header {
+    margin-bottom: 36px;
+  }
+
+  .related-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #B62F49;
+    margin: 0 0 8px;
+  }
+
+  .related-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    margin: 0;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .related-card {
+    display: flex;
+    flex-direction: column;
+    border: 1.5px solid #16203C;
+    background: #E7E9EF;
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .related-card:hover {
+    box-shadow: 8px 8px 0 #B62F49;
+    transform: translate(-2px, -2px);
+  }
+
+  .related-thumb {
+    aspect-ratio: 16 / 9;
+    background: #2B45C8;
+    border-bottom: 1.5px solid #16203C;
+    padding: 14px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .related-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+  }
+
+  .related-card-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.03em;
+    margin: 0;
+    padding: 18px;
+  }
+
+  @media (max-width: 768px) {
+    .related-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

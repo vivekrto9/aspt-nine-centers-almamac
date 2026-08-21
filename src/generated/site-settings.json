@@ -1,0 +1,18 @@
+{
+  "siteSettings": {
+    "brandName": "Nine Centres",
+    "siteUrl": "",
+    "primaryColor": "#2B45C8",
+    "contactEmail": "hello@example.com",
+    "defaultLocale": "en",
+    "timezone": "Asia/Kolkata",
+    "seoTitle": "Nine Centres — Field Almanac Human Design",
+    "seoDescription": "Generate your Human Design bodygraph and explore your type, authority, profile, centres, and complete one-time reading.",
+    "navigationMode": "single-page",
+    "tone": "archival",
+    "typography": "almanac",
+    "buttonStyle": "square",
+    "enableAnnouncementBanner": false,
+    "announcementText": ""
+  }
+}

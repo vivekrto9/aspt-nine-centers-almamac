@@ -1,0 +1,372 @@
+---
+const {
+  eyebrow = "Readings",
+  title = "One reading, one payment",
+  note = "USD · sliding scale on request",
+  eyebrowEdit = {},
+  titleEdit = {},
+  noteEdit = {},
+} = Astro.props;
+---
+
+<section id="readings" class="readings-section" data-readings-section>
+  <div class="section-header-grid">
+    <span class="section-number" aria-hidden="true">04</span>
+    <div class="section-title-wrap">
+      <p class="section-eyebrow" {...eyebrowEdit}>{eyebrow}</p>
+      <h2 class="section-heading" {...titleEdit}>{title}</h2>
+    </div>
+  </div>
+
+  <article class="reading-offer">
+    <div class="offer-copy">
+      <p class="offer-kicker">One-time payment</p>
+      <h3>The full reading</h3>
+      <p class="offer-description">
+        Everything that is locked, unlocked. Your whole chart read once through,
+        in depth — pay once and keep it for good.
+      </p>
+      <ul class="offer-list">
+        <li>Type, authority, profile and centres</li>
+        <li>Every channel and gate, in detail</li>
+        <li>A deconditioning practice you can run</li>
+        <li>Recording, chart file and notes to keep</li>
+      </ul>
+    </div>
+
+    <div class="offer-purchase">
+      <div>
+        <p class="offer-price">$99</p>
+        <p class="offer-meta">One-time · yours forever</p>
+      </div>
+      <button class="offer-cta" type="button" data-checkout-open>
+        Unlock everything — $99
+      </button>
+    </div>
+  </article>
+
+  <p class="readings-footer-note" {...noteEdit}>{note}</p>
+</section>
+
+<dialog class="checkout-dialog" data-checkout-dialog aria-labelledby="checkout-title">
+  <div class="checkout-shell">
+    <header class="checkout-header">
+      <p>Checkout</p>
+      <button type="button" class="checkout-close" data-checkout-close aria-label="Close checkout">×</button>
+    </header>
+
+    <div class="checkout-body">
+      <div class="checkout-summary">
+        <div>
+          <h2 id="checkout-title">The full reading</h2>
+          <p>One-time · yours forever</p>
+        </div>
+        <strong>$99</strong>
+      </div>
+
+      <form class="checkout-form" data-checkout-form novalidate>
+        <label for="checkout-email">Email</label>
+        <input
+          id="checkout-email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          inputmode="email"
+          placeholder="you@email.com"
+          required
+        />
+        <p class="checkout-error" data-checkout-error role="alert" hidden></p>
+        <button class="checkout-submit" type="submit" data-checkout-submit>
+          Continue to Stripe — $99
+        </button>
+        <p class="checkout-security">Secure payment details are entered on Stripe.</p>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="checkout-dialog purchase-owned-dialog" data-purchase-owned-dialog aria-labelledby="purchase-owned-title">
+  <div class="checkout-shell">
+    <header class="checkout-header">
+      <p>Purchase confirmed</p>
+      <button type="button" class="checkout-close" data-purchase-owned-close aria-label="Close purchase information">×</button>
+    </header>
+    <div class="purchase-owned-body">
+      <p class="offer-kicker">Already unlocked</p>
+      <h2 id="purchase-owned-title">You already own this reading</h2>
+      <p>Your payment for this saved chart is confirmed. The complete Human Design response is available now, and you will not be charged again.</p>
+      <p class="purchase-owned-order" data-purchase-owned-order hidden></p>
+      <a class="checkout-submit purchase-owned-link" data-purchase-owned-link href="/human-design">Open my full reading →</a>
+    </div>
+  </div>
+</dialog>
+
+<aside class="checkout-return" data-checkout-return hidden role="status" aria-live="polite">
+  <strong data-checkout-return-title></strong>
+  <span data-checkout-return-copy></span>
+  <button type="button" data-checkout-return-close aria-label="Dismiss payment message">×</button>
+</aside>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>("[data-checkout-dialog]");
+  const form = dialog?.querySelector<HTMLFormElement>("[data-checkout-form]");
+  const email = dialog?.querySelector<HTMLInputElement>("#checkout-email");
+  const error = dialog?.querySelector<HTMLElement>("[data-checkout-error]");
+  const submit = dialog?.querySelector<HTMLButtonElement>("[data-checkout-submit]");
+  const returnNotice = document.querySelector<HTMLElement>("[data-checkout-return]");
+  const ownedDialog = document.querySelector<HTMLDialogElement>("[data-purchase-owned-dialog]");
+  const ownedLink = ownedDialog?.querySelector<HTMLAnchorElement>("[data-purchase-owned-link]");
+  const ownedOrder = ownedDialog?.querySelector<HTMLElement>("[data-purchase-owned-order]");
+
+  type PaidAccess = { paid: boolean; chartUrl?: string; orderNumber?: string };
+  let paidAccess: PaidAccess | null = null;
+
+  const showOwnedReading = (access: PaidAccess) => {
+    if (!access.paid || !access.chartUrl) return;
+    if (ownedLink) ownedLink.href = access.chartUrl;
+    if (ownedOrder) {
+      ownedOrder.textContent = access.orderNumber ? `Order ${access.orderNumber}` : "Payment confirmed";
+      ownedOrder.hidden = false;
+    }
+    ownedDialog?.showModal();
+  };
+
+  const readPaidAccess = async () => {
+    const readingId = window.localStorage.getItem("hd:last-reading-id") || "";
+    if (!/^hd_chart_[A-Za-z0-9]+$/.test(readingId)) return null;
+    try {
+      const response = await fetch(`/api/checkout/reading-access?reading_id=${encodeURIComponent(readingId)}`, { cache: "no-store" });
+      if (!response.ok) return null;
+      return await response.json() as PaidAccess;
+    } catch {
+      return null;
+    }
+  };
+
+  const refreshPurchaseState = async () => {
+    paidAccess = await readPaidAccess();
+    if (!paidAccess?.paid) return;
+    document.querySelectorAll<HTMLButtonElement>("[data-checkout-open]").forEach((trigger) => {
+      trigger.textContent = "View my full reading →";
+      trigger.dataset.purchaseState = "paid";
+    });
+  };
+
+  const showError = (message = "") => {
+    if (!error) return;
+    error.textContent = message;
+    error.hidden = !message;
+  };
+
+  document.querySelectorAll<HTMLButtonElement>("[data-checkout-open]").forEach((trigger) => {
+    trigger.addEventListener("click", async () => {
+      showError();
+      trigger.disabled = true;
+      paidAccess = paidAccess?.paid ? paidAccess : await readPaidAccess();
+      trigger.disabled = false;
+      if (paidAccess?.paid) {
+        showOwnedReading(paidAccess);
+        window.astroPagesTrack?.("owned_reading_opened", { offer: "full-reading", order_number: paidAccess.orderNumber });
+        return;
+      }
+      window.astroPagesTrack?.("checkout_opened", { offer: "full-reading", amount: 99, currency: "USD" });
+      dialog?.showModal();
+      requestAnimationFrame(() => email?.focus());
+    });
+  });
+
+  dialog?.querySelector("[data-checkout-close]")?.addEventListener("click", () => dialog.close());
+  dialog?.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  ownedDialog?.querySelector("[data-purchase-owned-close]")?.addEventListener("click", () => ownedDialog.close());
+  ownedDialog?.addEventListener("click", (event) => {
+    if (event.target === ownedDialog) ownedDialog.close();
+  });
+
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    showError();
+
+    if (!email?.checkValidity()) {
+      email?.reportValidity();
+      return;
+    }
+
+    if (!submit) return;
+    submit.disabled = true;
+    const idleLabel = submit.textContent;
+    submit.textContent = "Opening secure checkout…";
+
+    try {
+      const response = await fetch("/api/checkout/full-reading", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.value.trim(),
+          readingId: window.localStorage.getItem("hd:last-reading-id") || undefined,
+        }),
+      });
+      const payload = await response.json() as { url?: string; orderId?: string; message?: string; alreadyPurchased?: boolean; chartUrl?: string; orderNumber?: string };
+
+      if (payload.alreadyPurchased && payload.chartUrl) {
+        paidAccess = { paid: true, chartUrl: payload.chartUrl, orderNumber: payload.orderNumber };
+        dialog?.close();
+        showOwnedReading(paidAccess);
+        void refreshPurchaseState();
+        return;
+      }
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.message || "Checkout could not be opened. Please try again.");
+      }
+
+      window.astroPagesTrack?.("checkout_created", { offer: "full-reading", order_id: payload.orderId });
+      window.location.assign(payload.url);
+    } catch (caught) {
+      showError(caught instanceof Error ? caught.message : "Checkout could not be opened. Please try again.");
+      submit.disabled = false;
+      submit.textContent = idleLabel;
+      window.astroPagesTrack?.("checkout_failed", { offer: "full-reading" });
+    }
+  });
+
+  const checkoutParams = new URLSearchParams(window.location.search);
+  const checkoutState = checkoutParams.get("checkout");
+  if (returnNotice && checkoutState) {
+    const title = returnNotice.querySelector<HTMLElement>("[data-checkout-return-title]");
+    const copy = returnNotice.querySelector<HTMLElement>("[data-checkout-return-copy]");
+    returnNotice.hidden = false;
+    if (checkoutState === "cancelled") {
+      if (title) title.textContent = "Checkout cancelled";
+      if (copy) copy.textContent = "Nothing was charged. You can return whenever you are ready.";
+      window.astroPagesTrack?.("checkout_cancelled", { offer: "full-reading" });
+    } else {
+      if (title) title.textContent = "Checking your payment…";
+      if (copy) copy.textContent = "Please keep this page open for a moment.";
+      const sessionId = checkoutParams.get("session_id") || "";
+      const checkPayment = async (attempt = 0) => {
+        try {
+          const response = await fetch(`/api/checkout/session-status?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
+          const payload = await response.json();
+          const paid = payload?.paymentStatus === "paid";
+          if (paid) {
+            if (title) title.textContent = "Payment confirmed";
+            if (copy) copy.textContent = `Your order ${payload.orderNumber} is confirmed. Check your email for the next steps.`;
+            window.astroPagesTrack?.("purchase_confirmed", { offer: "full-reading", order_number: payload?.orderNumber });
+            return;
+          }
+          if (attempt < 5) {
+            window.setTimeout(() => { void checkPayment(attempt + 1); }, 2000);
+            return;
+          }
+          if (title) title.textContent = "Payment is processing";
+          if (copy) copy.textContent = "Stripe is still confirming the payment. We will email you when it is complete.";
+          window.astroPagesTrack?.("purchase_processing", { offer: "full-reading", order_number: payload?.orderNumber });
+        } catch {
+          if (attempt < 5) {
+            window.setTimeout(() => { void checkPayment(attempt + 1); }, 2000);
+            return;
+          }
+          if (title) title.textContent = "Payment received";
+          if (copy) copy.textContent = "We are confirming it now and will email you with the next steps.";
+        }
+      };
+      void checkPayment();
+    }
+  }
+  returnNotice?.querySelector("[data-checkout-return-close]")?.addEventListener("click", () => { returnNotice.hidden = true; });
+  void refreshPurchaseState();
+</script>
+
+<style>
+  .readings-section { padding: 104px 32px 0; }
+  .checkout-return { position: fixed; z-index: 90; right: 24px; bottom: 24px; width: min(440px, calc(100vw - 32px)); padding: 22px 52px 22px 22px; border: 2px solid #16203c; background: #e7e9ef; box-shadow: 10px 10px 0 #b62f49; color: #16203c; }
+  .checkout-return[hidden] { display: none; }
+  .checkout-return strong, .checkout-return span { display: block; }
+  .checkout-return strong { margin-bottom: 6px; font-family: "Zilla Slab", sans-serif; font-size: 16px; }
+  .checkout-return span { line-height: 1.5; }
+  .checkout-return button { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; color: inherit; font-size: 26px; cursor: pointer; }
+  .section-header-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; align-items: end; margin-bottom: 48px; }
+  .section-number { grid-column: 1 / span 2; font-family: var(--font-display); font-weight: 700; font-size: 96px; line-height: .72; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 1.5px #2b45c8; }
+  .section-title-wrap { grid-column: 4 / span 8; }
+  .section-eyebrow, .offer-kicker { font-size: 10.5px; font-weight: 700; letter-spacing: .26em; text-transform: uppercase; color: #b62f49; margin: 0 0 12px; }
+  .section-heading { font-family: var(--font-display); font-weight: 600; font-size: clamp(38px, 5vw, 74px); line-height: .95; letter-spacing: -.055em; margin: 0; }
+
+  .reading-offer { display: grid; grid-template-columns: 3fr 2fr; min-height: 460px; border: 1.5px solid #16203c; background: #e7e9ef; }
+  .offer-copy, .offer-purchase { padding: clamp(38px, 5vw, 76px); }
+  .offer-copy { border-right: 1.5px solid #16203c; }
+  .offer-copy h3 { margin: 0 0 24px; font-family: var(--font-display); font-size: clamp(38px, 4vw, 64px); line-height: 1; letter-spacing: -.055em; }
+  .offer-description { max-width: 620px; margin: 0 0 38px; font-size: clamp(17px, 1.45vw, 22px); line-height: 1.55; color: #262d4b; text-wrap: pretty; }
+  .offer-list { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; font-size: 17px; }
+  .offer-list li { position: relative; padding-left: 28px; }
+  .offer-list li::before { content: ""; position: absolute; left: 0; top: .55em; width: 9px; height: 9px; background: #b62f49; }
+  .offer-purchase { display: flex; flex-direction: column; justify-content: space-between; }
+  .offer-price { margin: 0 0 4px; font-family: var(--font-display); font-weight: 600; font-size: clamp(72px, 8vw, 128px); line-height: .9; letter-spacing: -.075em; }
+  .offer-meta, .readings-footer-note, .checkout-summary p, .checkout-security { font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #7c87a0; }
+  .offer-meta { margin: 18px 0 0; }
+  .offer-cta, .checkout-submit { width: 100%; min-height: 62px; border: 1.5px solid #16203c; background: #b62f49; color: #16203c; font: inherit; font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; }
+  .offer-cta:focus-visible, .checkout-submit:focus-visible, .checkout-close:focus-visible, .checkout-form input:focus-visible { outline: 3px solid #2b45c8; outline-offset: 3px; }
+  .offer-cta:hover { background: #2b45c8; color: #e7e9ef; }
+  .readings-footer-note { margin: 22px 0 0; }
+
+  .checkout-dialog { width: min(620px, calc(100vw - 32px)); max-height: min(760px, calc(100dvh - 32px)); padding: 0; border: 1.5px solid #16203c; background: #e7e9ef; color: #16203c; box-shadow: 0 28px 90px rgb(10 16 48 / 32%); }
+  .checkout-dialog::backdrop { background: rgb(10 16 48 / 64%); backdrop-filter: blur(3px); }
+  .checkout-header { display: flex; align-items: center; justify-content: space-between; padding: 24px 30px; border-bottom: 1px solid rgb(10 16 48 / 20%); }
+  .checkout-header p { margin: 0; font-size: 10px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; }
+  .checkout-close { width: 42px; height: 42px; border: 0; background: transparent; color: #16203c; font: inherit; font-size: 30px; line-height: 1; cursor: pointer; }
+  .checkout-body { padding: 42px 30px 30px; }
+  .checkout-summary { display: flex; justify-content: space-between; align-items: start; gap: 24px; padding-bottom: 30px; border-bottom: 1px solid rgb(10 16 48 / 18%); }
+  .checkout-summary h2 { margin: 0 0 8px; font-family: var(--font-display); font-size: clamp(30px, 6vw, 44px); line-height: 1; letter-spacing: -.04em; }
+  .checkout-summary p { margin: 0; }
+  .checkout-summary strong { font-family: var(--font-display); font-size: clamp(48px, 9vw, 72px); line-height: .9; letter-spacing: -.06em; }
+  .checkout-form { display: grid; margin-top: 30px; }
+  .checkout-form label { margin-bottom: 10px; font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #656b80; }
+  .checkout-form input { min-height: 62px; padding: 0 18px; border: 1px solid rgb(10 16 48 / 28%); border-radius: 0; background: #fff; color: #16203c; font: inherit; font-size: 18px; }
+  .checkout-error { margin: 10px 0 0; color: #b42318; font-size: 14px; }
+  .checkout-submit { margin-top: 28px; background: #2b45c8; color: #e7e9ef; }
+  .checkout-submit:hover { background: #b62f49; color: #16203c; }
+  .checkout-submit:disabled { opacity: .58; cursor: wait; }
+  .checkout-security { margin: 18px 0 0; text-align: center; }
+  .purchase-owned-body { padding: clamp(36px, 6vw, 64px) 30px 34px; }
+  .purchase-owned-body h2 { max-width: 520px; margin: 0 0 22px; font-family: var(--font-display); font-size: clamp(34px, 6vw, 52px); line-height: 1; letter-spacing: -.05em; }
+  .purchase-owned-body > p:not(.offer-kicker) { max-width: 520px; margin: 0; color: #565d77; font-size: 17px; line-height: 1.65; }
+  .purchase-owned-body .purchase-owned-order { margin-top: 22px; color: #16203c; font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+  .purchase-owned-link { display: grid; place-items: center; margin-top: 34px; text-decoration: none; background: #2b45c8; color: #e7e9ef; }
+
+  @media (max-width: 900px) {
+    .readings-section { padding: 72px 18px 0; }
+    .section-header-grid { grid-template-columns: 1fr; margin-bottom: 34px; }
+    .section-number, .section-title-wrap { grid-column: span 1; }
+    .section-number { font-size: 72px; }
+    .reading-offer { grid-template-columns: 1fr; }
+    .offer-copy { border-right: 0; border-bottom: 1.5px solid #16203c; }
+    .offer-copy, .offer-purchase { padding: 34px 24px; }
+    .offer-purchase { min-height: 310px; }
+  }
+</style>
+
+<style>
+  .readings-section { width: min(1200px, calc(100% - 52px)); margin: 0 auto; padding: 34px 0 74px; border-top: 1px solid var(--color-ink); }
+  .section-header-grid { display: flex; align-items: baseline; gap: 20px; margin: 0 0 30px; }
+  .section-number { font-family: var(--font-mono); font-size: 0; color: var(--color-accent); }
+  .section-number::after { content: "§ III"; font-size: 10.5px; letter-spacing: 0.2em; }
+  .section-title-wrap { display: contents; }
+  .section-eyebrow { display: none; }
+  .section-heading { font-family: var(--font-display); font-size: 36px; font-weight: 500; line-height: 1.1; letter-spacing: 0; margin: 0; }
+  .reading-offer { min-height: 0; background: var(--color-paper); color: var(--color-ink); border: 1px solid var(--color-ink); box-shadow: none; }
+  .offer-copy { padding: 34px 32px; }
+  .offer-kicker, .offer-meta, .readings-footer-note, .checkout-header p, .checkout-form label, .checkout-security { font-family: var(--font-mono); font-weight: 400; }
+  .offer-kicker { color: var(--color-cobalt); }
+  .offer-copy h3, .offer-price, .checkout-summary h2, .purchase-owned-body h2 { font-family: var(--font-display); font-weight: 500; letter-spacing: 0; }
+  .offer-description, .offer-list { color: var(--color-text-dark); }
+  .offer-purchase { min-height: 0; background: #E7EAF1; border-left: 1px solid var(--color-ink); padding: 34px 32px; }
+  .offer-price { font-size: 42px; }
+  .offer-cta, .checkout-submit { background: var(--color-ink); color: var(--color-paper); border: 1px solid var(--color-ink); font-family: var(--font-mono); letter-spacing: 0.12em; }
+  .offer-cta:hover, .checkout-submit:hover { background: var(--color-cobalt); border-color: var(--color-cobalt); color: #fff; }
+  .readings-footer-note { color: #5A6480; letter-spacing: 0.14em; }
+  .checkout-dialog::backdrop { background: rgba(22, 32, 60, 0.72); }
+  .checkout-shell { background: var(--color-paper); border: 1px solid var(--color-ink); box-shadow: 10px 10px 0 var(--color-accent); }
+
+  @media (max-width: 760px) { .readings-section { width: min(100% - 32px, 1200px); } .reading-offer { grid-template-columns: 1fr; } .offer-purchase { min-height: 230px; border-left: 0; border-top: 1px solid var(--color-ink); } }
+</style>

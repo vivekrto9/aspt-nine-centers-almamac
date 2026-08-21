@@ -1,0 +1,324 @@
+---
+import UpastroBodyGraphCanvas from "../../bodygraph/UpastroBodyGraphCanvas.jsx";
+import { CENTRES, ACTIVATIONS } from "../../../data/human-design.constants.ts";
+import "../../../styles/hd-routes.css";
+
+const { eyebrow = "Plate — drawn from a sample chart", title = "Nine centres, one diagram", eyebrowEdit = {}, titleEdit = {} } = Astro.props;
+
+const designActivations = ACTIVATIONS.map((item, index) => ({ planet_id: index + 1, hd_position: item.design }));
+const personalityActivations = ACTIVATIONS.map((item, index) => ({ planet_id: index + 1, hd_position: item.personality }));
+const designGates = new Set(designActivations.map((item) => Number(item.hd_position.split(".")[0])));
+const personalityGates = new Set(personalityActivations.map((item) => Number(item.hd_position.split(".")[0])));
+const staticChartData = {
+  planetary_activations: { design: designActivations, personality: personalityActivations },
+  gates: Array.from({ length: 64 }, (_, index) => {
+    const id = index + 1;
+    return { id, design: designGates.has(id) ? "active" : "inactive", personality: personalityGates.has(id) ? "active" : "inactive" };
+  }),
+  centers: CENTRES.map((centre) => ({ id: centre.id, natal: centre.defined ? "defined" : "open" })),
+  channels: ["20-34", "39-55", "30-41"].map((id) => ({ id, natal: "active" })),
+};
+---
+
+<section id="plate" class="nine-centres-section" data-nine-centres-section>
+  <div class="section-header-grid">
+    <span class="section-number">01</span>
+    <div class="section-title-wrap">
+      <p class="section-eyebrow" {...eyebrowEdit}>{eyebrow}</p>
+      <h2 class="section-heading" {...titleEdit}>{title}</h2>
+    </div>
+  </div>
+
+  <div class="diagram-grid">
+    <!-- Left Column: Centres List & Legend -->
+    <div class="centres-col">
+      <div class="legend-row">
+        <span class="legend-item">
+          <span class="legend-box defined-box"></span> Defined
+        </span>
+        <span class="legend-item">
+          <span class="legend-box open-box"></span> Open
+        </span>
+      </div>
+      <div class="centres-list">
+        {CENTRES.map((c) => (
+          <div class="centre-row" data-centre-id={c.id}>
+            <span class={`centre-indicator ${c.defined ? 'defined-dot' : 'open-dot'}`}></span>
+            <span class="centre-name">{c.name}</span>
+            <span class="centre-state">{c.defined ? 'defined' : 'open'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Center Column: Bodygraph Canvas Plate -->
+    <div class="canvas-plate-col">
+      <UpastroBodyGraphCanvas theme="light" chartData={staticChartData} interactive={false} showActivationColumns={false} client:only="react" />
+    </div>
+
+    <!-- Right Column: Planetary Activations -->
+    <div class="activations-col">
+      <div class="activations-header">
+        <span class="col-head head-body">Body</span>
+        <span class="col-head head-design">Design</span>
+        <span class="col-head head-person">Person.</span>
+      </div>
+      <div class="activations-list">
+        {ACTIVATIONS.map((a) => (
+          <div class="activation-row">
+            <span class="planet-glyph">{a.glyph}</span>
+            <span class="activation-val design-val">{a.design}</span>
+            <span class="activation-val person-val">{a.personality}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .nine-centres-section {
+    padding: 96px 32px 0;
+  }
+
+  .section-header-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    align-items: end;
+    margin-bottom: 48px;
+  }
+
+  .section-number {
+    grid-column: 1 / span 2;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.72;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px #2B45C8;
+  }
+
+  .section-title-wrap {
+    grid-column: 4 / span 7;
+  }
+
+  .section-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #B62F49;
+    margin: 0 0 12px;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(28px, 3.6vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin: 0;
+  }
+
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .centres-col {
+    grid-column: 1 / span 4;
+  }
+
+  .legend-row {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #3C4661;
+  }
+
+  .legend-box {
+    width: 11px;
+    height: 11px;
+    display: block;
+  }
+
+  .defined-box {
+    background: #2B45C8;
+  }
+
+  .open-box {
+    border: 1.5px solid #16203C;
+  }
+
+  .centres-list {
+    display: grid;
+    border-top: 1.5px solid #16203C;
+  }
+
+  .centre-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(10, 16, 48, 0.18);
+  }
+
+  .centre-indicator {
+    width: 13px;
+    height: 13px;
+    display: block;
+    flex: none;
+  }
+
+  .defined-dot {
+    background: #2B45C8;
+  }
+
+  .open-dot {
+    border: 1.5px solid #16203C;
+  }
+
+  .centre-name {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 15px;
+    letter-spacing: -0.03em;
+    flex: 1;
+  }
+
+  .centre-state {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7C87A0;
+  }
+
+  .canvas-plate-col {
+    grid-column: 5 / span 4;
+    background: #2B45C8;
+    border: 1.5px solid #16203C;
+    padding: 18px 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .activations-col {
+    grid-column: 9 / span 4;
+    padding-top: 48px;
+  }
+
+  .activations-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding-bottom: 11px;
+    border-bottom: 1.5px solid #16203C;
+  }
+
+  .col-head {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .head-body { color: #7C87A0; }
+  .head-design { color: #2B45C8; text-align: right; }
+  .head-person { color: #B62F49; text-align: right; }
+
+  .activation-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 9.5px 0;
+    border-bottom: 1px solid rgba(10, 16, 48, 0.12);
+  }
+
+  .planet-glyph {
+    font-size: 15px;
+    color: #3C4661;
+  }
+
+  .activation-val {
+    font-size: 13.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .design-val { color: #16203C; }
+  .person-val { color: #3C4661; }
+
+  @media (max-width: 900px) {
+    .section-header-grid {
+      grid-template-columns: 1fr;
+    }
+    .section-number, .section-title-wrap {
+      grid-column: span 1;
+    }
+    .diagram-grid {
+      grid-template-columns: 1fr;
+    }
+    .centres-col, .canvas-plate-col, .activations-col {
+      grid-column: span 1;
+      padding-top: 0;
+    }
+  }
+</style>
+
+<style>
+  .nine-centres-section { width: min(1200px, calc(100% - 52px)); margin: 0 auto; background: transparent; color: var(--color-ink); padding: 32px 0 74px; border-top: 3px double var(--color-ink); }
+  .section-header-grid { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 26px; }
+  .section-number { display: none; }
+  .section-title-wrap { display: contents; }
+  .section-eyebrow { order: 1; color: #5A6480; font-family: var(--font-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.2em; margin: 0; text-transform: uppercase; }
+  .section-heading { display: none; }
+  .diagram-grid { display: grid; grid-template-columns: 1fr minmax(260px, 380px) 1fr; gap: 34px; align-items: start; }
+  .centres-col, .activations-col { border-top: 1px solid var(--color-ink); }
+  .legend-row { position: absolute; right: max(26px, calc((100vw - 1200px) / 2)); transform: translateY(-58px); display: flex; gap: 16px; }
+  .legend-item, .centre-state, .col-head, .activation-val { font-family: var(--font-mono); font-weight: 400; }
+  .legend-item { color: #5A6480; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .legend-box { width: 9px; height: 9px; border-radius: 0; }
+  .defined-box, .defined-dot { background: var(--color-cobalt); }
+  .open-box, .open-dot { border-color: var(--color-ink); }
+  .centre-row { min-height: 42px; border-bottom: 1px dotted #B7BECE; padding: 10px 0; }
+  .centre-indicator { width: 11px; height: 11px; border-radius: 0; }
+  .centre-name { font-family: var(--font-display); font-size: 17px; font-weight: 400; }
+  .centre-state { color: #5A6480; font-size: 10px; letter-spacing: 0.12em; }
+  .canvas-plate-col { background: var(--color-paper); border: 1px solid var(--color-ink); padding: 16px 12px; }
+  .activations-header { border-bottom: 1px solid var(--color-ink); padding: 9px 0; }
+  .col-head { color: #5A6480; font-size: 9.5px; letter-spacing: 0.16em; }
+  .head-design, .design-val { color: var(--color-cobalt); }
+  .head-person, .person-val { color: var(--color-accent); }
+  .activation-row { border-bottom: 1px dotted #B7BECE; padding: 8.5px 0; }
+  .activation-val { font-size: 12.5px; }
+
+  @media (max-width: 900px) {
+    .diagram-grid { grid-template-columns: 1fr 1.2fr; }
+    .activations-col { grid-column: 1 / -1; }
+  }
+  @media (max-width: 760px) {
+    .nine-centres-section { width: min(100% - 32px, 1200px); }
+    .section-header-grid { align-items: flex-start; }
+    .legend-row { position: static; transform: none; margin-bottom: 18px; }
+    .diagram-grid { grid-template-columns: 1fr; }
+    .activations-col { grid-column: auto; }
+  }
+</style>

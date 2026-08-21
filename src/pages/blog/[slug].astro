@@ -1,0 +1,82 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Header from "../../components/shared/Header.astro";
+import Footer from "../../components/shared/Footer.astro";
+import BlogArticleHeader from "../../components/blog/BlogArticleHeader.astro";
+import BlogArticleBody from "../../components/blog/BlogArticleBody.astro";
+import BlogRelatedArticles from "../../components/blog/BlogRelatedArticles.astro";
+import { BLOG_ARTICLES, getArticleBySlug } from "../../data/blog-articles.ts";
+import { getLocaleFromUrl, localizePath } from "../../data/localization-contract.ts";
+
+export const prerender = false;
+const locale = getLocaleFromUrl(Astro.request.url);
+const homeHref = localizePath("/", locale);
+
+const { slug = "" } = Astro.params;
+const article = getArticleBySlug(slug);
+
+if (!article) {
+  return Astro.redirect(localizePath("/blog", locale));
+}
+
+const relatedArticles = BLOG_ARTICLES.filter((a) => a.slug !== article.slug).slice(0, 3);
+
+const seoContent = {
+  seo_title: `${article.title} — Nine Centres`,
+  seo_description: article.excerpt,
+  seo_canonical_path: `/blog/${article.slug}`,
+  seo_robots: "index,follow",
+  og_title: `${article.title} — Nine Centres`,
+  og_description: article.excerpt,
+  og_image: "/_assets/aliases/logo/logo.svg",
+  og_image_alt: `${article.title} - Human Design Guide`,
+  twitter_card: "summary_large_image",
+  twitter_title: `${article.title} — Nine Centres`,
+  twitter_description: article.excerpt,
+  twitter_image: "/_assets/aliases/logo/logo.svg",
+};
+---
+
+<BaseLayout
+  seo={seoContent}
+  title={`${article.title} — Nine Centres`}
+>
+  <div class="site-wrap">
+    <Header brandName="Nine Centres" homeHref={homeHref} plateHref={`${homeHref}#plate`} typesHref={`${homeHref}#types`} readingsHref={`${homeHref}#readings`} questionsHref={`${homeHref}#faq`} chartHref={localizePath("/human-design", locale)} />
+
+    <main class="article-main-content">
+      <article class="article-container">
+        <BlogArticleHeader article={article} />
+        <BlogArticleBody article={article} />
+      </article>
+
+      <BlogRelatedArticles articles={relatedArticles} />
+    </main>
+
+    <Footer brandName="Nine Centres" plateHref={`${homeHref}#plate`} readingsHref={`${homeHref}#readings`} questionsHref={`${homeHref}#faq`} chartHref={localizePath("/human-design", locale)} />
+  </div>
+</BaseLayout>
+
+<style>
+  .site-wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #E7E9EF;
+    color: #16203C;
+  }
+
+  .article-main-content {
+    flex: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 48px 32px 96px;
+  }
+
+  @media (max-width: 768px) {
+    .article-main-content {
+      padding: 32px 20px 64px;
+    }
+  }
+</style>

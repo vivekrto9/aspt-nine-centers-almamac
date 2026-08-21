@@ -1,0 +1,809 @@
+---
+import { CENTRES, ACTIVATIONS, LEARN, BEGINNER, ENERGY_ROWS } from "../../../data/human-design.constants.ts";
+import BodyGraphCanvas from "../../bodygraph/BodyGraphCanvas.astro";
+---
+
+<div id="explore-view-container" class="explore-view-wrap" style="display: none;" data-explore-view>
+  <section class="explore-header-section">
+    <div class="explore-header-row">
+      <div>
+        <p class="explore-eyebrow">Bodygraph explorer</p>
+        <h1 id="explore-title" class="explore-title">Your body graph</h1>
+        <p class="explore-sub">Calculated for 14 Mar 1994 &middot; 06:42 &middot; Jaipur, India</p>
+      </div>
+      <button type="button" id="close-explore-btn" class="back-btn">
+        &larr; Back to your chart
+      </button>
+    </div>
+  </section>
+
+  <!-- Layer & Guide Controls -->
+  <section class="controls-section">
+    <div class="layer-buttons">
+      <button type="button" class="ctrl-btn active" data-layer-btn="Centres">Centres</button>
+      <button type="button" class="ctrl-btn" data-layer-btn="Channels">Channels</button>
+      <button type="button" class="ctrl-btn" data-layer-btn="Gates">Gates</button>
+    </div>
+    <div class="guide-buttons">
+      <button type="button" class="guide-btn active" data-guide-btn="chart">Chart guide</button>
+      <button type="button" class="guide-btn" data-guide-btn="beginner">Beginner's guide</button>
+      <button type="button" class="guide-btn" data-guide-btn="energy">Your energy type</button>
+    </div>
+  </section>
+
+  <!-- Explorer Main Workspace -->
+  <section class="workspace-section">
+    <div class="workspace-grid">
+      <!-- Left: Full Bodygraph Canvas with side columns -->
+      <div class="canvas-box">
+        <div class="activation-col-left">
+          <p class="col-title">Design</p>
+          {ACTIVATIONS.map((a) => (
+            <div class="act-item">
+              <span class="act-glyph">{a.glyph}</span>
+              <span class="act-val">{a.design}</span>
+            </div>
+          ))}
+        </div>
+
+        <div class="canvas-center">
+          <BodyGraphCanvas />
+          <div class="canvas-footer-bar">
+            <p class="canvas-summary">Sacral &middot; Defined &middot; 6 of 9 gates activated</p>
+            <div class="canvas-legend">
+              <span class="legend-chip"><span class="chip-def"></span> Defined</span>
+              <span class="legend-chip"><span class="chip-open"></span> Open</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="activation-col-right">
+          <p class="col-title accent">Person.</p>
+          {ACTIVATIONS.map((a) => (
+            <div class="act-item right-align">
+              <span class="act-val">{a.personality}</span>
+              <span class="act-glyph">{a.glyph}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Right: Interactive Guide Panel -->
+      <div class="guide-panel-box">
+        <!-- Panel 1: Chart Guide (Learn & Reference) -->
+        <div id="guide-chart-panel" class="guide-content-panel">
+          <div class="panel-subtabs">
+            <button type="button" class="tab-btn active" data-panel-tab="learn">Learn</button>
+            <button type="button" class="tab-btn" data-panel-tab="reference">Reference</button>
+          </div>
+
+          <!-- Subtab A: Learn -->
+          <div id="subtab-learn" class="subtab-content">
+            <h2 class="panel-main-heading">Your chart is a map of how your energy is wired.</h2>
+            <p class="panel-main-desc">What each element means, and how to read it.</p>
+            <div class="learn-items-list">
+              {LEARN.map((item) => (
+                <div class="learn-item">
+                  <h3 class="learn-item-title">{item.title}</h3>
+                  <p class="learn-item-body">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <!-- Subtab B: Reference -->
+          <div id="subtab-reference" class="subtab-content" style="display: none;">
+            <div class="centres-chips-row">
+              {CENTRES.map((c, i) => (
+                <button type="button" class={`chip-btn ${i === 5 ? 'selected' : ''}`} data-centre-chip={i}>
+                  <span class={`dot ${c.defined ? 'def' : 'op'}`}></span>
+                  <span>{c.name}</span>
+                </button>
+              ))}
+            </div>
+            <div id="centre-detail-card" class="centre-detail-card">
+              <p class="detail-eyebrow">Defined centre</p>
+              <h2 class="detail-heading">Sacral</h2>
+              <p class="detail-theme">Life force, vitality, workforce</p>
+              <p class="detail-body">
+                Renewable energy for work you respond to. It powers the gut yes, though it does not get the final word when Solar Plexus is defined.
+              </p>
+              <div class="detail-gates-section">
+                <span class="detail-gates-label">Gates in this centre</span>
+                <div class="gates-badges-row">
+                  <span class="gate-badge active">5</span>
+                  <span class="gate-badge active">14</span>
+                  <span class="gate-badge active">29</span>
+                  <span class="gate-badge active">34</span>
+                  <span class="gate-badge active">27</span>
+                  <span class="gate-badge active">59</span>
+                  <span class="gate-badge">42</span>
+                  <span class="gate-badge">3</span>
+                  <span class="gate-badge">9</span>
+                </div>
+                <span class="badge-hint">Filled = activated in your chart</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Beginner's Guide -->
+        <div id="guide-beginner-panel" class="guide-content-panel" style="display: none;">
+          <div class="beginner-subtabs">
+            {Object.keys(BEGINNER).map((k, i) => (
+              <button type="button" class={`b-tab-btn ${i === 0 ? 'active' : ''}`} data-bg-tab={k}>
+                {k}
+              </button>
+            ))}
+          </div>
+          <div class="beginner-text-body">
+            <h2 id="beginner-title" class="panel-main-heading">{BEGINNER["Body graph"].title}</h2>
+            <div id="beginner-paras">
+              {BEGINNER["Body graph"].paras.map((p) => (
+                <p class="para-text">{p}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Energy Type -->
+        <div id="guide-energy-panel" class="guide-content-panel" style="display: none;">
+          <div class="energy-panel-wrap">
+            <div class="energy-hero-box">
+              <p class="e-tag">energy-type</p>
+              <h2 class="e-name">Generator</h2>
+            </div>
+            <div class="energy-stats-row">
+              <div class="e-stat">
+                <p class="e-stat-val">5/9</p>
+                <p class="e-stat-lbl">Defined centres</p>
+              </div>
+              <div class="e-stat">
+                <p class="e-stat-val">4/36</p>
+                <p class="e-stat-lbl">Active channels</p>
+              </div>
+              <div class="e-stat">
+                <p class="e-stat-val">22/64</p>
+                <p class="e-stat-lbl">Activated gates</p>
+              </div>
+            </div>
+            <div class="energy-specs-list">
+              {ENERGY_ROWS.map((r) => (
+                <div class="e-row">
+                  <div>
+                    <p class="e-lbl">{r.label}</p>
+                    <p class="e-val">{r.value}</p>
+                  </div>
+                  <span class="e-arrow">&rarr;</span>
+                </div>
+              ))}
+            </div>
+            <div class="energy-upsell-box">
+              <h3 class="upsell-title">Unlock the full reading</h3>
+              <p class="upsell-desc">The rest of this section — authority, profile, channels and gates in detail.</p>
+              <a href="#readings" class="upsell-btn">See reading options</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script is:inline>
+  (() => {
+    const closeBtn = document.getElementById("close-explore-btn");
+    const exploreView = document.getElementById("explore-view-container");
+    const siteContent = document.getElementById("site-main-content");
+
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        if (exploreView) exploreView.style.display = "none";
+        if (siteContent) siteContent.style.display = "block";
+        window.scrollTo(0, 0);
+      });
+    }
+
+    // Guide switchers
+    const guideBtns = document.querySelectorAll("[data-guide-btn]");
+    const chartPanel = document.getElementById("guide-chart-panel");
+    const begPanel = document.getElementById("guide-beginner-panel");
+    const energyPanel = document.getElementById("guide-energy-panel");
+
+    guideBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const type = btn.getAttribute("data-guide-btn");
+        guideBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (chartPanel) chartPanel.style.display = type === "chart" ? "block" : "none";
+        if (begPanel) begPanel.style.display = type === "beginner" ? "block" : "none";
+        if (energyPanel) energyPanel.style.display = type === "energy" ? "block" : "none";
+      });
+    });
+
+    // Subtab switchers (Learn vs Reference)
+    const panelTabs = document.querySelectorAll("[data-panel-tab]");
+    const subLearn = document.getElementById("subtab-learn");
+    const subRef = document.getElementById("subtab-reference");
+
+    panelTabs.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.getAttribute("data-panel-tab");
+        panelTabs.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (subLearn) subLearn.style.display = tab === "learn" ? "block" : "none";
+        if (subRef) subRef.style.display = tab === "reference" ? "block" : "none";
+      });
+    });
+  })();
+</script>
+
+<style>
+  .explore-view-wrap {
+    background: #E7E9EF;
+    color: #16203C;
+    min-height: 100vh;
+  }
+
+  .explore-header-section {
+    padding: 56px 32px 0;
+  }
+
+  .explore-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .explore-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #B62F49;
+    margin: 0 0 14px;
+  }
+
+  .explore-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(32px, 4.4vw, 56px);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin: 0;
+  }
+
+  .explore-sub {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 14px 0 0;
+  }
+
+  .back-btn {
+    background: #E7E9EF;
+    border: 1.5px solid #16203C;
+    padding: 12px 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #16203C;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .back-btn:hover {
+    background: #16203C;
+    color: #E7E9EF;
+  }
+
+  .controls-section {
+    padding: 26px 32px 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .layer-buttons, .guide-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ctrl-btn, .guide-btn {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 9px 14px;
+    cursor: pointer;
+    border: 1.5px solid #16203C;
+    background: #E7E9EF;
+    color: #16203C;
+    transition: all 0.15s ease;
+  }
+
+  .ctrl-btn.active, .guide-btn.active {
+    background: #2B45C8;
+    color: #E7E9EF;
+  }
+
+  .workspace-section {
+    padding: 22px 32px 96px;
+  }
+
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.32fr) minmax(320px, 0.68fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .canvas-box {
+    background: #2B45C8;
+    border: 1.5px solid #16203C;
+    padding: 26px;
+    display: grid;
+    grid-template-columns: 66px minmax(0, 1fr) 66px;
+    gap: 16px;
+  }
+
+  .activation-col-left, .activation-col-right {
+    min-width: 0;
+  }
+
+  .col-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #E7E9EF;
+    margin: 0 0 14px;
+  }
+
+  .col-title.accent {
+    color: #B62F49;
+    text-align: right;
+  }
+
+  .act-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6.5px 0;
+    border-bottom: 1px solid rgba(245, 241, 232, 0.16);
+  }
+
+  .act-item.right-align {
+    justify-content: flex-end;
+  }
+
+  .act-glyph {
+    font-size: 13px;
+    color: #D8DEEC;
+    width: 14px;
+  }
+
+  .act-val {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: #E7E9EF;
+  }
+
+  .canvas-center {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .canvas-footer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .canvas-summary {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+    margin: 0;
+  }
+
+  .canvas-legend {
+    display: flex;
+    gap: 14px;
+  }
+
+  .legend-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+  }
+
+  .chip-def {
+    width: 9px;
+    height: 9px;
+    background: #E7E9EF;
+    display: block;
+  }
+
+  .chip-open {
+    width: 9px;
+    height: 9px;
+    border: 1px solid #E7E9EF;
+    display: block;
+  }
+
+  .guide-panel-box {
+    background: #E7E9EF;
+    border: 1.5px solid #16203C;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-subtabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1.5px solid #16203C;
+  }
+
+  .tab-btn {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 16px 10px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: #7C87A0;
+    transition: all 0.15s ease;
+  }
+
+  .tab-btn.active {
+    color: #16203C;
+    border-bottom: 2px solid #2B45C8;
+  }
+
+  .subtab-content {
+    padding: 30px 28px;
+  }
+
+  .panel-main-heading {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+    margin: 0 0 10px;
+    text-wrap: pretty;
+  }
+
+  .panel-main-desc {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #3C4661;
+    margin: 0 0 24px;
+  }
+
+  .learn-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .learn-item {
+    border-top: 1px solid rgba(10, 16, 48, 0.18);
+    padding-top: 18px;
+  }
+
+  .learn-item-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 9px;
+  }
+
+  .learn-item-body {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #3C4661;
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  .centres-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 20px;
+  }
+
+  .chip-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    padding: 8px 11px;
+    cursor: pointer;
+    border: 1.5px solid #16203C;
+    background: #E7E9EF;
+    color: #3C4661;
+  }
+
+  .chip-btn.selected {
+    background: #16203C;
+    color: #E7E9EF;
+  }
+
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: block;
+  }
+
+  .dot.def { background: #2B45C8; }
+  .dot.op { border: 1.5px solid #16203C; }
+
+  .centre-detail-card {
+    border-top: 1px solid rgba(10, 16, 48, 0.18);
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .detail-eyebrow {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #2B45C8;
+    margin: 0 0 4px;
+  }
+
+  .detail-heading {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+    margin: 0;
+  }
+
+  .detail-theme {
+    font-size: 15px;
+    color: var(--color-ink);
+    margin: 0;
+  }
+
+  .detail-body {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #3C4661;
+    margin: 0;
+  }
+
+  .detail-gates-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(10, 16, 48, 0.18);
+  }
+
+  .detail-gates-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7C87A0;
+  }
+
+  .gates-badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .gate-badge {
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    min-width: 32px;
+    text-align: center;
+    padding: 7px 8px;
+    background: rgba(10, 16, 48, 0.08);
+    color: #7C87A0;
+  }
+
+  .gate-badge.active {
+    background: #2B45C8;
+    color: #E7E9EF;
+  }
+
+  .badge-hint {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7C87A0;
+  }
+
+  /* Energy Type Panel Styles */
+  .energy-panel-wrap {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .energy-hero-box {
+    aspect-ratio: 4 / 3;
+    background: #2B45C8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 22px;
+    gap: 8px;
+  }
+
+  .e-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+    margin: 0;
+  }
+
+  .e-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: -0.04em;
+    margin: 0;
+    text-align: center;
+    color: #E7E9EF;
+  }
+
+  .energy-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border: 1px solid #16203C;
+  }
+
+  .e-stat {
+    padding: 16px 14px;
+    flex: 1 1 90px;
+    min-width: 0;
+    border-right: 1px solid rgba(10, 16, 48, 0.18);
+  }
+
+  .e-stat:last-child {
+    border-right: none;
+  }
+
+  .e-stat-val {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.04em;
+    margin: 0 0 6px;
+  }
+
+  .e-stat-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .energy-specs-list {
+    border: 1px solid #16203C;
+  }
+
+  .e-row {
+    padding: 15px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border-bottom: 1px solid rgba(10, 16, 48, 0.14);
+  }
+
+  .e-row:last-child {
+    border-bottom: none;
+  }
+
+  .e-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 0 0 5px;
+  }
+
+  .e-val {
+    font-size: 15px;
+    margin: 0;
+  }
+
+  .e-arrow {
+    font-size: 14px;
+    color: #D8DEEC;
+  }
+
+  .energy-upsell-box {
+    border: 1.5px solid #16203C;
+    background: #E7E9EF;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .upsell-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 20px;
+    letter-spacing: -0.04em;
+    margin: 0;
+  }
+
+  .upsell-desc {
+    font-size: 14px;
+    line-height: 1.56;
+    color: #3C4661;
+    margin: 0;
+    max-width: 30ch;
+  }
+
+  .upsell-btn {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #16203C;
+    background: #B62F49;
+    border: 1.5px solid #16203C;
+    padding: 13px 22px;
+    margin-top: 4px;
+    text-decoration: none;
+  }
+
+  @media (max-width: 960px) {
+    .workspace-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

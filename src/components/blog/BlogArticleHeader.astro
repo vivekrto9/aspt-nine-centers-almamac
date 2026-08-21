@@ -1,0 +1,168 @@
+---
+import type { BlogArticle } from "../../data/blog-articles.ts";
+import { getLocaleFromUrl, localizePath } from "../../data/localization-contract.ts";
+
+interface Props {
+  article: BlogArticle;
+}
+
+const { article } = Astro.props;
+const locale = getLocaleFromUrl(Astro.request.url);
+---
+
+<header class="article-header" data-article-header>
+  <nav class="breadcrumb-nav" aria-label="Breadcrumbs">
+    <a href={localizePath("/blog", locale)} class="breadcrumb-link">&larr; Back to all articles</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-current">{article.category}</span>
+  </nav>
+
+  <div class="article-tag-wrap">
+    <span class="article-tag">{article.tag}</span>
+    <span class="article-date">&middot; {article.date}</span>
+  </div>
+
+  <h1 class="article-title">{article.title}</h1>
+  <p class="article-lead">{article.excerpt}</p>
+
+  <div class="author-meta-bar">
+    <div class="author-info">
+      <span class="author-badge">NC</span>
+      <div>
+        <p class="author-name">{article.author}</p>
+        <p class="author-role">Human Design Research & Analysis</p>
+      </div>
+    </div>
+    <span class="read-time-pill">{article.readTime} read</span>
+  </div>
+</header>
+
+<style>
+  .article-header {
+    border-bottom: 1.5px solid #16203C;
+    padding-bottom: 40px;
+    margin-bottom: 48px;
+  }
+
+  .breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+
+  .breadcrumb-link {
+    color: #2B45C8;
+    text-decoration: none;
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .breadcrumb-link:hover {
+    text-decoration: underline;
+  }
+
+  .breadcrumb-sep {
+    color: #7C87A0;
+  }
+
+  .breadcrumb-current {
+    color: #3C4661;
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .article-tag-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #B62F49;
+    margin-bottom: 16px;
+  }
+
+  .article-title {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 4.8vw, 56px);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.05em;
+    margin: 0 0 20px;
+    color: #16203C;
+  }
+
+  .article-lead {
+    font-size: 19px;
+    line-height: 1.52;
+    color: #3C4661;
+    margin: 0 0 32px;
+  }
+
+  .author-meta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: #EAE4D5;
+    border: 1.5px solid #16203C;
+    padding: 14px 20px;
+  }
+
+  .author-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .author-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #2B45C8;
+    color: #E7E9EF;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .author-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14px;
+    margin: 0 0 2px;
+  }
+
+  .author-role {
+    font-size: 12px;
+    color: #3C4661;
+    margin: 0;
+  }
+
+  .read-time-pill {
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #2B45C8;
+    background: #E7E9EF;
+    border: 1.5px solid #2B45C8;
+    padding: 6px 14px;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 768px) {
+    .author-meta-bar {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

@@ -1,0 +1,123 @@
+---
+import Footer from "../components/shared/Footer.astro";
+import Header from "../components/shared/Header.astro";
+import PlaceAutocomplete from "../components/shared/PlaceAutocomplete.astro";
+import { getLocaleFromUrl, localizePath } from "../data/localization-contract.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import "../styles/hd-routes.css";
+
+export const prerender = false;
+const locale = getLocaleFromUrl(Astro.request.url);
+const homeHref = localizePath("/", locale);
+const resultBase = localizePath("/human-design", locale);
+const seo = {
+  seo_title: "Generate your Human Design chart · Nine Centres",
+  seo_description: "Create a Human Design bodygraph from your birth date, time, and place.",
+  seo_canonical_path: "/human-design",
+  seo_robots: "index,follow",
+};
+---
+
+<BaseLayout seo={seo} bodyClass="hd-route">
+  <Header
+    homeHref={homeHref}
+    plateHref={`${homeHref}#plate`}
+    typesHref={`${homeHref}#types`}
+    readingsHref={`${homeHref}#readings`}
+    questionsHref={`${homeHref}#faq`}
+    chartHref={localizePath("/human-design", locale)}
+  />
+  <main class="hd-route-main">
+    <p class="hd-route-kicker">Your bodygraph · one minute</p>
+    <h1 class="hd-route-title">Generate your Human Design chart.</h1>
+    <p class="hd-route-lead">Enter the birth details used to calculate your conscious and unconscious activations.</p>
+    <section class="hd-form-panel" aria-labelledby="chart-form-title">
+      <h2 id="chart-form-title" class="hd-route-label">Birth details</h2>
+      <form class="hd-form-grid" data-hd-chart-form>
+        <div class="hd-field hd-field-full">
+          <label for="hd-name">Name</label>
+          <input id="hd-name" name="name" autocomplete="name" required maxlength="80" />
+        </div>
+        <div class="hd-field hd-field-full">
+          <label for="hd-email">Email</label>
+          <input id="hd-email" name="email" type="email" autocomplete="email" required maxlength="254" />
+        </div>
+        <div class="hd-field">
+          <label for="hd-date">Birth date</label>
+          <input id="hd-date" name="birthDate" type="date" required />
+        </div>
+        <div class="hd-field">
+          <label for="hd-time">Birth time</label>
+          <input id="hd-time" name="birthTime" type="time" />
+        </div>
+        <PlaceAutocomplete
+          id="hd-city"
+          name="birthCity"
+          wrapperClass="hd-field hd-field-full"
+          dateInputId="hd-date"
+          timeInputId="hd-time"
+        />
+        <button class="hd-primary-action hd-field-full" type="submit">Generate my chart</button>
+        <p class="hd-form-status" data-hd-form-status aria-live="polite" hidden></p>
+      </form>
+    </section>
+  </main>
+  <Footer
+    plateHref={`${homeHref}#plate`}
+    readingsHref={`${homeHref}#readings`}
+    questionsHref={`${homeHref}#faq`}
+    chartHref={localizePath("/human-design", locale)}
+  />
+</BaseLayout>
+
+<script is:inline define:vars={{ resultBase }}>
+  (() => {
+    const form = document.querySelector("[data-hd-chart-form]");
+    if (!(form instanceof HTMLFormElement)) return;
+    const button = form.querySelector("button[type='submit']");
+    const status = form.querySelector("[data-hd-form-status]");
+    if (new URLSearchParams(window.location.search).get("error") === "chart-not-found" && status instanceof HTMLElement) {
+      status.hidden = false;
+      status.textContent = "That saved chart could not be found. Generate a new chart below.";
+    }
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity() || !(button instanceof HTMLButtonElement)) return;
+      const values = new FormData(form);
+      const payload = Object.fromEntries(values.entries());
+      button.disabled = true;
+      button.textContent = "Drawing your chart…";
+      if (status instanceof HTMLElement) {
+        status.hidden = false;
+        status.textContent = "Calculating design and personality activations.";
+      }
+      try {
+        window.astroPagesTrack?.("free_chart_submitted", { source: "chart_page" });
+        const response = await fetch("/api/astropages/generated-site/human-design", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok || !result?.readingId) throw new Error(result?.message || "Your chart could not be generated. Please try again.");
+        const slug = String(result.readingId);
+        try {
+          window.sessionStorage.setItem(`hd:reading:${slug}`, JSON.stringify({ ...payload, result: result.result }));
+          window.localStorage.setItem("hd:last-reading-id", slug);
+        } catch {}
+        const target = new URL(resultBase, window.location.origin);
+        target.pathname = `${target.pathname.replace(/\/$/, "")}/${encodeURIComponent(slug)}`;
+        window.astroPagesTrack?.("free_chart_generated", { source: "chart_page", reading_id: slug });
+        window.location.assign(`${target.pathname}${target.search}`);
+      } catch (caught) {
+        button.disabled = false;
+        button.textContent = "Generate my chart";
+        if (status instanceof HTMLElement) {
+          status.hidden = false;
+          status.textContent = caught instanceof Error ? caught.message : "Your chart could not be generated. Please try again.";
+        }
+        window.astroPagesTrack?.("free_chart_failed", { source: "chart_page" });
+      }
+    });
+  })();
+</script>

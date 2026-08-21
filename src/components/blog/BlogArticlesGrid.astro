@@ -1,0 +1,36 @@
+---
+import type { BlogArticle } from "../../data/blog-articles.ts";
+import BlogCard from "./BlogCard.astro";
+
+interface Props {
+  articles: BlogArticle[];
+}
+
+const { articles } = Astro.props;
+---
+
+<div class="blog-articles-grid" id="blog-grid" data-blog-articles-grid>
+  {articles.map((article) => (
+    <BlogCard article={article} />
+  ))}
+</div>
+
+<style>
+  .blog-articles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+
+  @media (max-width: 1024px) {
+    .blog-articles-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .blog-articles-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

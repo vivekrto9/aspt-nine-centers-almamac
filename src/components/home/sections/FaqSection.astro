@@ -1,0 +1,190 @@
+---
+import { FAQS } from "../../../data/human-design.constants.ts";
+
+const { eyebrow = "Questions", title = "Before you book", eyebrowEdit = {}, titleEdit = {} } = Astro.props;
+---
+
+<section id="faq" class="faq-section" data-faq-section>
+  <div class="faq-grid">
+    <span class="section-number">06</span>
+    <div class="faq-title-wrap">
+      <p class="section-eyebrow" {...eyebrowEdit}>{eyebrow}</p>
+      <h2 class="section-heading" {...titleEdit}>{title}</h2>
+    </div>
+
+    <div class="faq-accordion-wrap">
+      {FAQS.map((f, i) => (
+        <div class="faq-item" data-faq-item={i}>
+          <button
+            type="button"
+            class="faq-trigger"
+            data-faq-trigger={i}
+            aria-expanded={i === 0 ? "true" : "false"}
+          >
+            <span class="faq-question">{f.question}</span>
+            <span class="faq-icon">{i === 0 ? "−" : "+"}</span>
+          </button>
+          <div
+            class="faq-answer-panel"
+            data-faq-panel={i}
+            style={i === 0 ? "display: block;" : "display: none;"}
+          >
+            <p class="faq-answer">{f.answer}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  (() => {
+    const triggers = document.querySelectorAll("[data-faq-trigger]");
+
+    triggers.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = btn.getAttribute("data-faq-trigger");
+        const panel = document.querySelector(`[data-faq-panel="${idx}"]`);
+        const icon = btn.querySelector(".faq-icon");
+
+        const isOpen = panel && panel.style.display === "block";
+
+        if (isOpen) {
+          if (panel) panel.style.display = "none";
+          if (icon) icon.textContent = "+";
+          btn.setAttribute("aria-expanded", "false");
+        } else {
+          if (panel) panel.style.display = "block";
+          if (icon) icon.textContent = "−";
+          btn.setAttribute("aria-expanded", "true");
+        }
+      });
+    });
+  })();
+</script>
+
+<style>
+  .faq-section {
+    padding: 104px 32px 96px;
+  }
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .section-number {
+    grid-column: 1 / span 2;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.72;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px #2B45C8;
+  }
+
+  .faq-title-wrap {
+    grid-column: 3 / span 3;
+    padding-top: 6px;
+  }
+
+  .section-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #B62F49;
+    margin: 0 0 12px;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(28px, 3.2vw, 42px);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin: 0;
+  }
+
+  .faq-accordion-wrap {
+    grid-column: 7 / span 6;
+    border-top: 1.5px solid #16203C;
+  }
+
+  .faq-item {
+    border-bottom: 1px solid rgba(10, 16, 48, 0.2);
+  }
+
+  .faq-trigger {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 22px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.15s ease;
+  }
+
+  .faq-trigger:hover .faq-question {
+    color: #2B45C8;
+  }
+
+  .faq-question {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.22;
+    letter-spacing: -0.04em;
+    color: var(--color-ink);
+  }
+
+  .faq-icon {
+    font-size: 22px;
+    font-weight: 400;
+    color: #B62F49;
+    flex: none;
+  }
+
+  .faq-answer {
+    font-size: 16.5px;
+    line-height: 1.6;
+    color: #3C4661;
+    margin: 0 0 24px;
+    max-width: 62ch;
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 900px) {
+    .faq-grid {
+      grid-template-columns: 1fr;
+    }
+    .section-number, .faq-title-wrap, .faq-accordion-wrap {
+      grid-column: span 1;
+    }
+  }
+</style>
+
+<style>
+  .faq-section { width: min(1200px, calc(100% - 52px)); margin: 0 auto; padding: 34px 0 78px; border-top: 1px solid var(--color-ink); }
+  .faq-grid { display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 44px; align-items: start; }
+  .section-number { grid-column: 1; font-family: var(--font-mono); font-size: 0; color: var(--color-accent); }
+  .section-number::after { content: "§ V"; font-size: 10.5px; letter-spacing: 0.2em; }
+  .faq-title-wrap { grid-column: 1; }
+  .section-eyebrow { display: none; }
+  .section-heading { font-family: var(--font-display); font-size: 36px; font-weight: 500; line-height: 1.08; letter-spacing: 0; margin: 16px 0 0; }
+  .faq-accordion-wrap { grid-column: 2; grid-row: 1 / span 2; border-top: 1px solid var(--color-subtle-border); }
+  .faq-item { border-bottom: 1px solid var(--color-subtle-border); }
+  .faq-trigger { padding: 20px 0; }
+  .faq-question { font-family: var(--font-display); font-size: 20px; font-weight: 400; line-height: 1.26; }
+  .faq-icon { color: var(--color-accent); font-family: var(--font-mono); font-size: 15px; }
+  .faq-answer { color: var(--color-text-dark); font-size: 16px; line-height: 1.65; margin: 0 0 22px; }
+
+  @media (max-width: 760px) { .faq-section { width: min(100% - 32px, 1200px); } .faq-grid { grid-template-columns: 1fr; gap: 24px; } .faq-accordion-wrap { grid-column: 1; grid-row: auto; } }
+</style>

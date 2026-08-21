@@ -1,0 +1,188 @@
+---
+import { build, HUMAN_FIGURE_PATH } from "../../data/bodygraph-geometry.ts";
+
+interface Props {
+  showGateNumbers?: boolean;
+  theme?: "light" | "dark" | "cobalt";
+  accentColor?: string;
+  cobaltColor?: string;
+  ivoryColor?: string;
+}
+
+const {
+  showGateNumbers = true,
+  theme = "cobalt",
+  accentColor = "#B62F49",
+  cobaltColor = "#2B45C8",
+  ivoryColor = "#E7E9EF",
+} = Astro.props;
+
+const bg = build();
+---
+
+<div class="bodygraph-canvas-container" data-bodygraph-canvas>
+  <div class="canvas-silhouette-wrapper">
+    <!-- Human Body Silhouette Background -->
+    <svg
+      aria-hidden="true"
+      viewBox="190 0 1600 2000"
+      preserveAspectRatio="xMidYMid meet"
+      class="silhouette-svg bg-silhouette"
+    >
+      <path
+        d={HUMAN_FIGURE_PATH}
+        fill={theme === "cobalt" ? "rgba(245, 241, 232, 0.12)" : "rgba(10, 16, 48, 0.08)"}
+        stroke="none"
+        class="bg-silhouette"
+      />
+    </svg>
+
+    <!-- Main Bodygraph Vector Canvas -->
+    <svg
+      viewBox={bg.viewBox}
+      class="bodygraph-svg"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Human Design Bodygraph Diagram"
+    >
+      <!-- Inactive Channel pipes -->
+      <g class="bg-channels-inactive" fill="none" stroke={theme === "cobalt" ? "rgba(245,241,232,0.18)" : "rgba(10,16,48,0.12)"} stroke-width="9" stroke-linecap="round">
+        {bg.channels.map((c) => (
+          <path d={c.d} data-channel-pair={c.pair} />
+        ))}
+      </g>
+
+      <!-- Active Channel paths -->
+      <g class="bg-channels-active" fill="none" stroke-linecap="butt">
+        {bg.channels.filter((c) => c.full || c.half).map((c) => (
+          <path
+            d={c.d}
+            data-channel-pair={c.pair}
+            pathLength={100}
+            stroke={c.isDesign ? accentColor : (theme === "cobalt" ? ivoryColor : cobaltColor)}
+            stroke-width="5.5"
+            stroke-dasharray={c.half ? "50 50" : undefined}
+            stroke-dashoffset={c.half ? c.offset : undefined}
+          />
+        ))}
+      </g>
+
+      <!-- 9 Energy Center Shapes -->
+      <g class="bg-center-shapes">
+        {bg.shapes.map((s) => (
+          <path
+            d={s.d}
+            fill={s.defined ? (theme === "cobalt" ? ivoryColor : s.fill) : (theme === "cobalt" ? "rgba(10,16,48,0.4)" : "rgba(245,241,232,0.9)")}
+            stroke={s.defined ? (theme === "cobalt" ? ivoryColor : "rgba(10,16,48,0.2)") : (theme === "cobalt" ? "rgba(245,241,232,0.4)" : "rgba(10,16,48,0.25)")}
+            stroke-width="1.5"
+            data-center-name={s.name}
+            data-center-defined={s.defined}
+          />
+        ))}
+      </g>
+
+      <!-- Visible terminal strokes attach every channel to its gate node. -->
+      <g class="bg-gate-attachments" fill="none" stroke-linecap="round">
+        {bg.channels.flatMap((channel) => channel.attachments).map((attachment) => (
+          <path
+            d={attachment.d}
+            data-channel-attachment={attachment.gate}
+            stroke={attachment.active
+              ? (attachment.isDesign
+                ? accentColor
+                : (theme === "cobalt" && !attachment.onDefined ? ivoryColor : cobaltColor))
+              : (theme === "cobalt"
+                ? (attachment.onDefined ? "rgba(18,48,200,0.34)" : "rgba(245,241,232,0.34)")
+                : "rgba(10,16,48,0.24)")}
+            stroke-width={attachment.active ? 5.5 : 4}
+          />
+        ))}
+      </g>
+
+      <!-- Gate nodes & numbers -->
+      {showGateNumbers && (
+        <g class="bg-gate-nodes">
+          {bg.gates.map((g) => (
+            <g data-gate-number={g.n} data-gate-active={g.act}>
+              <circle
+                cx={g.cx}
+                cy={g.cy}
+                r="9.5"
+                fill={g.act
+                  ? (g.isDesign ? accentColor : cobaltColor)
+                  : (theme === "cobalt"
+                    ? (g.onDefined ? ivoryColor : "rgba(18,48,200,0.58)")
+                    : "rgba(245,241,232,0.92)")}
+                stroke={g.act
+                  ? "none"
+                  : (theme === "cobalt"
+                    ? (g.onDefined ? "rgba(18,48,200,0.42)" : "rgba(245,241,232,0.42)")
+                    : "rgba(10,16,48,0.28)")}
+                stroke-width={g.act ? 0 : 1.25}
+              />
+              <text
+                x={g.cx}
+                y={g.cy + 4.2}
+                text-anchor="middle"
+                fill={g.act ? ivoryColor : (g.onDefined ? (theme === "cobalt" ? cobaltColor : "rgba(0,0,0,0.68)") : (theme === "cobalt" ? ivoryColor : "rgba(10,16,48,0.68)"))}
+                style="font-family:'Work Sans', Helvetica, sans-serif; font-weight:600; font-size:12px; pointer-events:none;"
+              >
+                {g.n}
+              </text>
+            </g>
+          ))}
+        </g>
+      )}
+    </svg>
+  </div>
+</div>
+
+<style>
+  .bodygraph-canvas-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .canvas-silhouette-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .silhouette-svg {
+    position: absolute;
+    left: 50%;
+    top: -6.5%;
+    width: 108%;
+    height: 108%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    overflow: visible;
+  }
+
+
+  .bodygraph-svg {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .bg-channels-active path {
+    transition: stroke 0.3s ease;
+  }
+
+  .bg-gate-attachments path {
+    transition: stroke 0.3s ease;
+  }
+
+  .bg-center-shapes path {
+    transition: fill 0.3s ease, stroke 0.3s ease;
+  }
+</style>

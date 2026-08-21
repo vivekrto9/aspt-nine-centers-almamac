@@ -1,0 +1,339 @@
+---
+interface Props {
+  id: string;
+  name?: string;
+  label?: string;
+  placeholder?: string;
+  wrapperClass?: string;
+  labelClass?: string;
+  inputClass?: string;
+  dateInputId: string;
+  timeInputId: string;
+}
+
+const {
+  id,
+  name = "birthCity",
+  label = "Birth city",
+  placeholder = "Start typing a city",
+  wrapperClass = "",
+  labelClass = "",
+  inputClass = "",
+  dateInputId,
+  timeInputId,
+} = Astro.props;
+const listId = `${id}-suggestions`;
+const statusId = `${id}-status`;
+---
+
+<div
+  class:list={["place-selector", wrapperClass]}
+  data-place-selector
+  data-date-input-id={dateInputId}
+  data-time-input-id={timeInputId}
+>
+  <label for={id} class={labelClass}>{label}</label>
+  <div class="place-selector__control">
+    <input
+      id={id}
+      name={name}
+      type="text"
+      class:list={["place-selector__input", inputClass]}
+      placeholder={placeholder}
+      autocomplete="one-time-code"
+      autocapitalize="words"
+      spellcheck="false"
+      data-1p-ignore="true"
+      data-lpignore="true"
+      data-form-type="other"
+      maxlength="180"
+      required
+      role="combobox"
+      aria-autocomplete="list"
+      aria-controls={listId}
+      aria-expanded="false"
+      aria-describedby={statusId}
+      data-place-input
+    />
+    <span class="place-selector__spinner" data-place-spinner hidden aria-hidden="true"></span>
+    <div id={listId} class="place-selector__menu" role="listbox" data-place-menu hidden></div>
+  </div>
+  <p id={statusId} class="place-selector__status" data-place-status aria-live="polite"></p>
+  <input type="hidden" name="placeId" data-place-value="placeId" />
+  <input type="hidden" name="latitude" data-place-value="latitude" />
+  <input type="hidden" name="longitude" data-place-value="longitude" />
+  <input type="hidden" name="timezoneName" data-place-value="timezoneName" />
+  <input type="hidden" name="timezoneOffset" data-place-value="timezoneOffset" />
+</div>
+
+<script>
+  const makeSessionToken = () => {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  };
+
+  document.querySelectorAll<HTMLElement>("[data-place-selector]").forEach((root) => {
+    if (root.dataset.placeReady === "true") return;
+    root.dataset.placeReady = "true";
+
+    const input = root.querySelector<HTMLInputElement>("[data-place-input]");
+    const menu = root.querySelector<HTMLElement>("[data-place-menu]");
+    const status = root.querySelector<HTMLElement>("[data-place-status]");
+    const spinner = root.querySelector<HTMLElement>("[data-place-spinner]");
+    const form = root.closest("form");
+    if (!input || !menu || !status) return;
+
+    const hidden = (key: string) => root.querySelector<HTMLInputElement>(`[data-place-value="${key}"]`);
+    const dateInput = document.getElementById(root.dataset.dateInputId || "") as HTMLInputElement | null;
+    const timeInput = document.getElementById(root.dataset.timeInputId || "") as HTMLInputElement | null;
+    let sessionToken = makeSessionToken();
+    let suggestions: Array<{ placeId: string; description: string; mainText?: string; secondaryText?: string }> = [];
+    let activeIndex = -1;
+    let selectedPlaceId = "";
+    let debounceTimer = 0;
+    let searchController: AbortController | undefined;
+    let detailsController: AbortController | undefined;
+
+    const setBusy = (busy: boolean) => {
+      if (spinner) spinner.hidden = !busy;
+      root.toggleAttribute("data-loading", busy);
+    };
+    const closeMenu = () => {
+      menu.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+      input.removeAttribute("aria-activedescendant");
+      activeIndex = -1;
+    };
+    const clearSelection = () => {
+      selectedPlaceId = "";
+      ["placeId", "latitude", "longitude", "timezoneName", "timezoneOffset"].forEach((key) => {
+        const field = hidden(key);
+        if (field) field.value = "";
+      });
+      status.textContent = "";
+      input.setCustomValidity(input.value.trim() ? "Select a city from the suggestions." : "");
+    };
+    const setActive = (index: number) => {
+      const options = Array.from(menu.querySelectorAll<HTMLElement>("[role='option']"));
+      if (!options.length) return;
+      activeIndex = (index + options.length) % options.length;
+      options.forEach((option, optionIndex) => option.setAttribute("aria-selected", String(optionIndex === activeIndex)));
+      input.setAttribute("aria-activedescendant", options[activeIndex].id);
+      options[activeIndex].scrollIntoView({ block: "nearest" });
+    };
+    const renderSuggestions = () => {
+      menu.replaceChildren();
+      if (!suggestions.length) {
+        closeMenu();
+        status.textContent = input.value.trim().length >= 2 ? "No matching cities found." : "";
+        return;
+      }
+      suggestions.forEach((suggestion, index) => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.id = `${menu.id}-option-${index}`;
+        option.className = "place-selector__option";
+        option.setAttribute("role", "option");
+        option.setAttribute("aria-selected", "false");
+        option.innerHTML = `<strong></strong><span></span>`;
+        const strong = option.querySelector("strong");
+        const secondary = option.querySelector("span");
+        if (strong) strong.textContent = suggestion.mainText || suggestion.description;
+        if (secondary) secondary.textContent = suggestion.secondaryText || "";
+        option.addEventListener("pointerdown", (event) => event.preventDefault());
+        option.addEventListener("click", () => selectSuggestion(suggestion));
+        menu.append(option);
+      });
+      menu.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+      status.textContent = `${suggestions.length} ${suggestions.length === 1 ? "city" : "cities"} found.`;
+    };
+
+    const selectSuggestion = async (suggestion: typeof suggestions[number]) => {
+      closeMenu();
+      input.value = suggestion.description;
+      input.setCustomValidity("");
+      status.textContent = "Confirming city and timezone…";
+      setBusy(true);
+      detailsController?.abort();
+      detailsController = new AbortController();
+      const params = new URLSearchParams({ placeId: suggestion.placeId, sessionToken });
+      if (dateInput?.value) params.set("date", dateInput.value);
+      if (timeInput?.value) params.set("time", timeInput.value);
+      try {
+        const response = await fetch(`/api/astropages/generated-site/places/details?${params}`, { signal: detailsController.signal });
+        const payload = await response.json();
+        const place = payload?.data?.place;
+        if (!response.ok || payload?.status !== "ready" || !place) throw new Error(payload?.message || "Place details could not be loaded.");
+        input.value = String(place.formattedAddress || suggestion.description);
+        selectedPlaceId = String(place.placeId || suggestion.placeId);
+        const values: Record<string, string> = {
+          placeId: selectedPlaceId,
+          latitude: String(place.lat),
+          longitude: String(place.lon),
+          timezoneName: String(place.timezone || ""),
+          timezoneOffset: String(place.offset || ""),
+        };
+        Object.entries(values).forEach(([key, value]) => { const field = hidden(key); if (field) field.value = value; });
+        input.setCustomValidity("");
+        status.textContent = `${place.timezone}${place.offset ? ` · ${place.offset}` : ""}`;
+        sessionToken = makeSessionToken();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        clearSelection();
+        input.setCustomValidity("Select the city again so its timezone can be confirmed.");
+        status.textContent = error instanceof Error ? error.message : "Place details could not be loaded.";
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    const search = async () => {
+      const query = input.value.trim();
+      if (query.length < 2) {
+        suggestions = [];
+        closeMenu();
+        status.textContent = query ? "Type at least 2 characters." : "";
+        return;
+      }
+      searchController?.abort();
+      searchController = new AbortController();
+      setBusy(true);
+      try {
+        const params = new URLSearchParams({ input: query, sessionToken, language: document.documentElement.lang || "en" });
+        const response = await fetch(`/api/astropages/generated-site/places/autocomplete?${params}`, { signal: searchController.signal });
+        const payload = await response.json();
+        if (!response.ok || payload?.status !== "ready") throw new Error(payload?.message || "Place suggestions could not be loaded.");
+        suggestions = Array.isArray(payload?.data?.predictions) ? payload.data.predictions : [];
+        renderSuggestions();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        suggestions = [];
+        closeMenu();
+        status.textContent = error instanceof Error ? error.message : "Place suggestions could not be loaded.";
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    input.addEventListener("input", () => {
+      clearSelection();
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(search, 260);
+    });
+    input.addEventListener("focus", () => { if (suggestions.length && input.value.trim().length >= 2) renderSuggestions(); });
+    input.addEventListener("keydown", (event) => {
+      if (menu.hidden && (event.key === "ArrowDown" || event.key === "ArrowUp") && suggestions.length) renderSuggestions();
+      if (event.key === "ArrowDown") { event.preventDefault(); setActive(activeIndex + 1); }
+      else if (event.key === "ArrowUp") { event.preventDefault(); setActive(activeIndex - 1); }
+      else if (event.key === "Home" && !menu.hidden) { event.preventDefault(); setActive(0); }
+      else if (event.key === "End" && !menu.hidden) { event.preventDefault(); setActive(suggestions.length - 1); }
+      else if (event.key === "Enter" && !menu.hidden && activeIndex >= 0) { event.preventDefault(); selectSuggestion(suggestions[activeIndex]); }
+      else if (event.key === "Escape") closeMenu();
+    });
+    document.addEventListener("pointerdown", (event) => { if (!root.contains(event.target as Node)) closeMenu(); });
+    form?.addEventListener("reset", () => window.setTimeout(() => { suggestions = []; clearSelection(); closeMenu(); }, 0));
+    form?.addEventListener("submit", () => {
+      if (input.value.trim() && !selectedPlaceId) input.setCustomValidity("Select a city from the suggestions.");
+    }, { capture: true });
+    [dateInput, timeInput].forEach((field) => field?.addEventListener("change", () => {
+      if (selectedPlaceId) {
+        const description = input.value;
+        selectSuggestion({ placeId: selectedPlaceId, description });
+      }
+    }));
+  });
+</script>
+
+<style>
+  .place-selector {
+    position: relative;
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+  }
+  .place-selector > label {
+    color: #3c4661;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  .place-selector__control { position: relative; }
+  .place-selector__input {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    box-sizing: border-box;
+    border: 1.5px solid #16203c;
+    border-radius: 0;
+    background: #fff;
+    color: #16203c;
+    padding: 12px 14px;
+    font: inherit;
+    font-size: 16px;
+    outline: none;
+    appearance: none;
+  }
+  .place-selector__input:focus-visible {
+    border-color: #b62f49;
+    outline: 3px solid rgba(255, 107, 74, 0.35);
+    outline-offset: 2px;
+  }
+  .place-selector__spinner {
+    position: absolute; right: 14px; top: 50%; width: 15px; height: 15px;
+    margin-top: -8px; border: 2px solid #d5d7e0; border-top-color: #2b45c8;
+    border-radius: 50%; animation: place-spin 650ms linear infinite; pointer-events: none;
+  }
+  .place-selector__menu {
+    position: absolute; z-index: 80; top: calc(100% + 6px); left: 0; right: 0;
+    max-height: 260px; overflow-y: auto; border: 1.5px solid #16203c;
+    background: #e7e9ef; box-shadow: 8px 8px 0 #b62f49;
+  }
+  :global(.place-selector__option) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+    width: 100%;
+    min-height: 58px;
+    box-sizing: border-box;
+    border: 0;
+    border-bottom: 1px solid rgba(10, 16, 48, 0.22);
+    border-radius: 0;
+    background: transparent;
+    color: #16203c;
+    padding: 12px 15px;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+  }
+  :global(.place-selector__option:last-child) { border-bottom: 0; }
+  :global(.place-selector__option strong) {
+    display: block;
+    overflow: hidden;
+    font: 700 14px/1.25 var(--font-body, sans-serif);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :global(.place-selector__option span) {
+    display: block;
+    overflow: hidden;
+    color: #666d88;
+    font: 500 12px/1.3 var(--font-body, sans-serif);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :global(.place-selector__option:hover),
+  :global(.place-selector__option[aria-selected="true"]) {
+    background: #2b45c8;
+    color: #e7e9ef;
+  }
+  :global(.place-selector__option:hover span),
+  :global(.place-selector__option[aria-selected="true"] span) { color: #c9d0ff; }
+  .place-selector__status { min-height: 14px; margin: 3px 0 0; color: #747b97; font-size: 10px; line-height: 1.35; }
+  @keyframes place-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .place-selector__spinner { animation-duration: 1.5s; } }
+</style>

@@ -1,0 +1,268 @@
+---
+import UnlockReadingCard from "./UnlockReadingCard.astro";
+
+type Channel = { name: string; label: string; description: string; paragraphs?: string[] };
+type CenterDetail = { id: string; name: string; state: string; description: string; paragraphs?: string[] };
+type GateDetail = { id: number; name: string; state: string; description: string; paragraphs?: string[] };
+
+interface Props {
+  activeGates: number[];
+  channels: Channel[];
+  definedCenters?: string[];
+  centerDetails?: CenterDetail[];
+  gateDetails?: GateDetail[];
+  unlocked?: boolean;
+  upgradeHref?: string;
+}
+
+const {
+  activeGates,
+  channels,
+  definedCenters = ["throat", "g", "sacral", "solar", "root"],
+  centerDetails = [],
+  gateDetails = [],
+  unlocked = false,
+  upgradeHref = "/#readings",
+} = Astro.props;
+const detailCopy = (description: string, detailParagraphs: string[] = []) =>
+  unlocked ? description : detailParagraphs[0] || description;
+const definedCenterSet = new Set(definedCenters.map((value: string) => value.toLowerCase()));
+const centreShapes: Record<string, string> = {
+  head: "triangle", ajna: "triangle-down", throat: "square", g: "diamond", ego: "triangle",
+  spleen: "triangle-left", sacral: "square", solar: "triangle-right", root: "square",
+};
+
+const fallbackCentres = [
+  { id: "head", name: "Head Centre", state: "Open", shape: "triangle", description: "Inspiration and mental pressure arrive here. Openness lets you notice which questions are truly worth your attention." },
+  { id: "ajna", name: "Ajna Centre", state: "Open", shape: "triangle-down", description: "The Ajna organises concepts and opinions. An open Ajna can see many perspectives without needing fixed certainty." },
+  { id: "throat", name: "Throat Centre", state: "Defined", shape: "square", description: "The centre of expression and manifestation. Definition gives your communication a recognisable, consistent quality." },
+  { id: "g", name: "G Centre", state: "Defined", shape: "diamond", description: "Identity, love and direction live here. Definition creates a stable inner sense of who you are and where you are going." },
+  { id: "ego", name: "Heart Centre", state: "Open", shape: "triangle", description: "Willpower, value and material drive live here. Openness means there is nothing to prove through constant effort." },
+  { id: "spleen", name: "Splenic Centre", state: "Open", shape: "triangle-left", description: "Instinct, wellbeing and present-moment awareness live here. Openness heightens sensitivity to what is healthy or unsafe." },
+  { id: "sacral", name: "Sacral Centre", state: "Defined", shape: "square", description: "This is the life-force motor. Definition provides sustainable energy when you respond to what is genuinely correct for you." },
+  { id: "solar", name: "Solar Plexus Centre", state: "Defined", shape: "triangle-right", description: "Emotion, desire and sensitivity move in waves here. Definition asks you to wait for clarity before committing." },
+  { id: "root", name: "Root Centre", state: "Defined", shape: "square", description: "The Root supplies pressure and momentum. Definition brings a consistent way of handling stress and moving into action." },
+].map((centre) => ({ ...centre, state: definedCenterSet.has(centre.id) ? "Defined" : "Open" }));
+const centres: Array<CenterDetail & { shape: string }> = centerDetails.length
+  ? centerDetails.map((centre) => ({ ...centre, shape: centreShapes[centre.id] || "square" }))
+  : fallbackCentres;
+
+const gateNames = new Map([
+  [8, ["Contribution", "Your individual style finds impact through authentic contribution."]],
+  [13, ["The Listener", "You carry a capacity to hear stories, memories and the direction of a group."]],
+  [20, ["The Now", "Awareness becomes expression through presence in the immediate moment."]],
+  [21, ["Control", "You are designed to manage resources and decide what you are responsible for."]],
+  [26, ["The Egoist", "Persuasion and memory help you communicate what has real value."]],
+  [30, ["Feelings", "Desire creates emotional intensity and a hunger for meaningful experience."]],
+  [34, ["Power", "Sacral force is available for independent action when there is a true response."]],
+  [38, ["The Fighter", "Pressure to struggle helps you discover what is genuinely worth fighting for."]],
+  [39, ["Provocation", "Provocation tests emotional spirit and reveals where feeling is alive."]],
+  [41, ["Contraction", "Imagination begins a new experiential cycle by focusing desire."]],
+  [49, ["Principles", "Emotional principles determine which bonds and agreements remain viable."]],
+  [55, ["Spirit", "Abundance is experienced as an emotional state rather than a material condition."]],
+  [58, ["Vitality", "Joy fuels the pressure to improve life and correct what can work better."]],
+  [59, ["Sexuality", "A powerful aura for breaking barriers creates intimacy and fertile connection."]],
+]);
+
+const gates = activeGates.map((gate) => {
+  const providerGate = gateDetails.find((item) => item.id === gate);
+  if (providerGate) return { id: String(gate), name: providerGate.name, state: providerGate.state || "Active", description: providerGate.description };
+  const [name, description] = gateNames.get(gate) || [`Gate ${gate}`, `Gate ${gate} is active in this chart.`];
+  return { id: String(gate), name: `Gate ${gate} · ${name}`, state: "Active", description };
+});
+---
+
+<div class="hd-properties-backdrop" data-properties-backdrop hidden></div>
+<aside class="hd-properties-drawer" data-properties-drawer aria-hidden="true" aria-labelledby="properties-title">
+  <header class="hd-properties-drawer__header">
+    <h2 id="properties-title">Chart Properties</h2>
+    <button type="button" data-properties-close aria-label="Close chart properties"><span>Close Properties</span> ×</button>
+  </header>
+
+  <nav class="hd-properties-drawer__tabs" aria-label="Chart property groups" role="tablist">
+    <button type="button" role="tab" aria-selected="true" data-property-tab="centres">
+      <svg class="hd-property-tab-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 29 16 16 29 3 16Z"/><path d="M16 3v26"/></svg>
+      Centres
+    </button>
+    <button type="button" role="tab" aria-selected="false" data-property-tab="gates">
+      <svg class="hd-property-tab-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="m16 3 13 24H3Z"/><circle cx="16" cy="20" r="2"/></svg>
+      Gates
+    </button>
+    <button type="button" role="tab" aria-selected="false" data-property-tab="channels">
+      <svg class="hd-property-tab-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M11.5 20.5 20.5 11.5"/><circle cx="9" cy="23" r="5"/><circle cx="23" cy="9" r="5"/></svg>
+      Channels
+    </button>
+  </nav>
+
+  <div class="hd-properties-drawer__viewport">
+    <section data-property-panel="centres">
+      <div class="hd-properties-subtabs" role="tablist" aria-label="Centre state">
+        <button type="button" aria-selected="true" data-property-filter="Defined">Defined Centres</button>
+        <button type="button" aria-selected="false" data-property-filter="Open">Open Centres</button>
+      </div>
+      <label class="hd-properties-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search Centres" data-property-search /></label>
+      <div class="hd-properties-list" data-property-list>
+        {centres.map((centre) => (
+          <button class="hd-property-card" type="button" data-property-card data-property-state={centre.state} data-property-name={centre.name} data-property-kicker={`${centre.state} centre`} data-property-description={detailCopy(centre.description, centre.paragraphs)} hidden={centre.state !== "Defined"}>
+            <span class="hd-property-card-icon" aria-hidden="true">
+              {centre.shape.includes("triangle") ? (
+                <svg class={`hd-centre-icon hd-centre-icon--${centre.shape}`} viewBox="0 0 36 36"><path d="M18 5 31 29H5Z"/></svg>
+              ) : (
+                <svg class={`hd-centre-icon hd-centre-icon--${centre.shape}`} viewBox="0 0 36 36"><rect x="6" y="6" width="24" height="24" rx="1"/></svg>
+              )}
+            </span>
+            <span><small>{centre.state}</small><strong>{centre.name}</strong></span>
+            <svg class="hd-property-card-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        ))}
+      </div>
+    </section>
+
+    <section data-property-panel="gates" hidden>
+      <label class="hd-properties-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search Gates" data-property-search /></label>
+      <div class="hd-properties-list" data-property-list>
+        {gates.map((gate) => (
+          <button class="hd-property-card" type="button" data-property-card data-property-name={gate.name} data-property-kicker="Active gate" data-property-description={detailCopy(gate.description, gateDetails.find((item) => item.id === Number(gate.id))?.paragraphs)}>
+            <span class="hd-property-card-icon hd-property-card-icon--gate" aria-hidden="true">
+              <svg viewBox="0 0 42 42"><path d="M8 6h22l5 7-4 23H9L5 14Z"/><text x="20" y="25">{gate.id}</text></svg>
+            </span>
+            <span><small>{gate.state}</small><strong>{gate.name}</strong></span>
+            <svg class="hd-property-card-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        ))}
+      </div>
+    </section>
+
+    <section data-property-panel="channels" hidden>
+      <label class="hd-properties-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search Channels" data-property-search /></label>
+      <div class="hd-properties-list" data-property-list>
+        {channels.map((channel) => (
+          <button class="hd-property-card" type="button" data-property-card data-property-name={`${channel.name} · ${channel.label}`} data-property-kicker="Active channel" data-property-description={detailCopy(channel.description, channel.paragraphs)}>
+            <span class="hd-property-card-icon hd-property-card-icon--channel" aria-hidden="true">
+              <svg viewBox="0 0 42 42"><path d="M13 29 29 13"/><circle cx="11" cy="31" r="6"/><circle cx="31" cy="11" r="6"/></svg>
+            </span>
+            <span><small>Active</small><strong>{channel.name} · {channel.label}</strong></span>
+            <svg class="hd-property-card-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        ))}
+      </div>
+    </section>
+
+    <article class="hd-property-detail" data-property-detail hidden>
+      <button type="button" class="hd-property-detail__back" data-property-back>← Back to list</button>
+      <div class="hd-property-detail__hero">
+        <p data-property-detail-kicker></p>
+        <h3 data-property-detail-title></h3>
+      </div>
+      <p data-property-detail-copy></p>
+      <div class="hd-property-detail__nav">
+        <button type="button" data-property-previous>← <span>Previous</span></button>
+        <button type="button" data-property-next><span>Next</span> →</button>
+      </div>
+      {!unlocked && <UnlockReadingCard upgradeHref={upgradeHref} />}
+    </article>
+  </div>
+</aside>
+
+<script>
+  const drawer = document.querySelector<HTMLElement>("[data-properties-drawer]");
+  const backdrop = document.querySelector<HTMLElement>("[data-properties-backdrop]");
+  const openButton = document.querySelector<HTMLButtonElement>("[data-properties-open]");
+  const closeButton = drawer?.querySelector<HTMLButtonElement>("[data-properties-close]");
+  const detail = drawer?.querySelector<HTMLElement>("[data-property-detail]");
+  let lastTrigger: HTMLElement | null = null;
+  let currentCards: HTMLButtonElement[] = [];
+  let currentIndex = -1;
+
+  const showDrawer = () => {
+    if (!drawer || !backdrop) return;
+    lastTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : openButton;
+    backdrop.hidden = false;
+    requestAnimationFrame(() => {
+      drawer.setAttribute("aria-hidden", "false");
+      backdrop.dataset.visible = "true";
+    });
+    document.body.classList.add("hd-properties-open");
+    window.astroPagesTrack?.("chart_properties_opened", {});
+    closeButton?.focus();
+  };
+
+  const hideDrawer = () => {
+    if (!drawer || !backdrop) return;
+    drawer.setAttribute("aria-hidden", "true");
+    delete backdrop.dataset.visible;
+    document.body.classList.remove("hd-properties-open");
+    window.setTimeout(() => { backdrop.hidden = true; }, 320);
+    lastTrigger?.focus();
+  };
+
+  const showList = () => {
+    if (!drawer || !detail) return;
+    detail.hidden = true;
+    drawer.querySelectorAll<HTMLElement>("[data-property-panel]").forEach((panel) => {
+      const activeTab = drawer.querySelector<HTMLElement>("[data-property-tab][aria-selected='true']")?.dataset.propertyTab;
+      panel.hidden = panel.dataset.propertyPanel !== activeTab;
+    });
+  };
+
+  const showCard = (card: HTMLButtonElement) => {
+    if (!drawer || !detail) return;
+    const panel = card.closest<HTMLElement>("[data-property-panel]");
+    currentCards = panel ? Array.from(panel.querySelectorAll<HTMLButtonElement>("[data-property-card]")).filter((item) => !item.hidden) : [];
+    currentIndex = currentCards.indexOf(card);
+    drawer.querySelectorAll<HTMLElement>("[data-property-panel]").forEach((item) => { item.hidden = true; });
+    detail.hidden = false;
+    const title = detail.querySelector<HTMLElement>("[data-property-detail-title]");
+    const kicker = detail.querySelector<HTMLElement>("[data-property-detail-kicker]");
+    const copy = detail.querySelector<HTMLElement>("[data-property-detail-copy]");
+    if (title) title.textContent = card.dataset.propertyName || "Chart property";
+    if (kicker) kicker.textContent = card.dataset.propertyKicker || "Chart property";
+    if (copy) copy.textContent = card.dataset.propertyDescription || "This property is active in your chart.";
+    window.astroPagesTrack?.("chart_property_viewed", {
+      category: card.dataset.propertyKicker || "chart_property",
+      property: card.dataset.propertyName || "unknown",
+    });
+    const previous = detail.querySelector<HTMLButtonElement>("[data-property-previous]");
+    const next = detail.querySelector<HTMLButtonElement>("[data-property-next]");
+    if (previous) previous.disabled = currentIndex <= 0;
+    if (next) next.disabled = currentIndex < 0 || currentIndex >= currentCards.length - 1;
+    detail.scrollIntoView({ block: "start" });
+  };
+
+  openButton?.addEventListener("click", showDrawer);
+  closeButton?.addEventListener("click", hideDrawer);
+  backdrop?.addEventListener("click", hideDrawer);
+  drawer?.querySelector("[data-property-back]")?.addEventListener("click", showList);
+  drawer?.querySelector("[data-property-previous]")?.addEventListener("click", () => { if (currentIndex > 0) showCard(currentCards[currentIndex - 1]); });
+  drawer?.querySelector("[data-property-next]")?.addEventListener("click", () => { if (currentIndex < currentCards.length - 1) showCard(currentCards[currentIndex + 1]); });
+
+  drawer?.querySelectorAll<HTMLButtonElement>("[data-property-tab]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      drawer.querySelectorAll<HTMLButtonElement>("[data-property-tab]").forEach((item) => item.setAttribute("aria-selected", String(item === tab)));
+      drawer.querySelectorAll<HTMLInputElement>("[data-property-search]").forEach((input) => { input.value = ""; });
+      showList();
+    });
+  });
+
+  drawer?.querySelectorAll<HTMLButtonElement>("[data-property-filter]").forEach((filter) => {
+    filter.addEventListener("click", () => {
+      const panel = filter.closest<HTMLElement>("[data-property-panel]");
+      panel?.querySelectorAll<HTMLButtonElement>("[data-property-filter]").forEach((item) => item.setAttribute("aria-selected", String(item === filter)));
+      panel?.querySelectorAll<HTMLButtonElement>("[data-property-card]").forEach((card) => { card.hidden = card.dataset.propertyState !== filter.dataset.propertyFilter; });
+    });
+  });
+
+  drawer?.querySelectorAll<HTMLInputElement>("[data-property-search]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const panel = input.closest<HTMLElement>("[data-property-panel]");
+      const query = input.value.trim().toLowerCase();
+      const filter = panel?.querySelector<HTMLButtonElement>("[data-property-filter][aria-selected='true']")?.dataset.propertyFilter;
+      panel?.querySelectorAll<HTMLButtonElement>("[data-property-card]").forEach((card) => {
+        card.hidden = Boolean((filter && card.dataset.propertyState !== filter) || (query && !card.dataset.propertyName?.toLowerCase().includes(query)));
+      });
+    });
+  });
+
+  drawer?.querySelectorAll<HTMLButtonElement>("[data-property-card]").forEach((card) => card.addEventListener("click", () => showCard(card)));
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && drawer?.getAttribute("aria-hidden") === "false") hideDrawer(); });
+</script>

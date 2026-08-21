@@ -1,0 +1,204 @@
+---
+import UpastroBodyGraphCanvas from "../../components/bodygraph/UpastroBodyGraphCanvas.jsx";
+import BodyGraphCanvas from "../../components/bodygraph/BodyGraphCanvas.astro";
+import BodyGraphGuidePanel from "../../components/bodygraph/BodyGraphGuidePanel.astro";
+import ChartPropertiesDrawer from "../../components/bodygraph/ChartPropertiesDrawer.astro";
+import Footer from "../../components/shared/Footer.astro";
+import Header from "../../components/shared/Header.astro";
+import { getLocaleFromUrl, localizePath } from "../../data/localization-contract.ts";
+import { defaultHumanDesignProfile, formatFixtureBirthline, preparedChartFixture } from "../../data/human-design-fixtures.ts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getRuntimeEnv } from "../../server/generated-site/request.ts";
+import { hasPaidHumanDesignPageAccess, loadHumanDesignPage, normalizeHumanDesignPageView } from "../../server/generated-site/human-design-page.ts";
+import "../../styles/hd-routes.css";
+
+export const prerender = false;
+Astro.response.headers.set("cache-control", "private, no-store");
+const slug = Astro.params.slug || "fixture";
+const locale = getLocaleFromUrl(Astro.request.url);
+const homeHref = localizePath("/", locale);
+const chartHref = localizePath("/human-design", locale);
+const runtimeEnv = await getRuntimeEnv(Astro);
+const savedPage = await loadHumanDesignPage({ env: runtimeEnv, slug });
+if (slug.startsWith("hd_chart_") && !savedPage) {
+  return Astro.redirect(`${chartHref}?error=chart-not-found`, 302);
+}
+const savedReading = savedPage?.reading ?? null;
+const hasFullReadingAccess = savedReading
+  ? await hasPaidHumanDesignPageAccess({ env: runtimeEnv, readingId: slug })
+  : false;
+const savedProfile = savedReading?.profile && typeof savedReading.profile === "object" ? savedReading.profile as Record<string, unknown> : null;
+const seo = {
+  seo_title: "Your Human Design chart · Nine Centres",
+  seo_description: "Private Human Design chart result.",
+  seo_canonical_path: `/human-design/${slug}`,
+  seo_robots: "noindex,nofollow",
+};
+
+const designActivations = preparedChartFixture.activations.map((item, index) => ({
+  planet_id: index + 1,
+  hd_position: item.design,
+}));
+const personalityActivations = preparedChartFixture.activations.map((item, index) => ({
+  planet_id: index + 1,
+  hd_position: item.personality,
+}));
+const designGates = new Set(designActivations.map((item) => Number(item.hd_position.split(".")[0])));
+const personalityGates = new Set(personalityActivations.map((item) => Number(item.hd_position.split(".")[0])));
+const definedCentres = new Set(["throat", "g", "sacral", "solar", "root"]);
+const upstreamChartData = {
+  planetary_activations: {
+    design: designActivations,
+    personality: personalityActivations,
+  },
+  gates: Array.from({ length: 64 }, (_, index) => {
+    const id = index + 1;
+    return {
+      id,
+      design: designGates.has(id) ? "active" : "inactive",
+      personality: personalityGates.has(id) ? "active" : "inactive",
+    };
+  }),
+  centers: ["head", "ajna", "throat", "g", "ego", "spleen", "sacral", "solar", "root"].map((id) => ({
+    id,
+    natal: definedCentres.has(id) ? "active" : "open",
+  })),
+  channels: ["20-34", "39-55", "30-41"].map((id) => ({ id, natal: "active" })),
+};
+const fallbackView = normalizeHumanDesignPageView({ chart: upstreamChartData });
+const chartView = savedPage?.chartView ?? {
+  ...fallbackView,
+  type: "Generator",
+  strategy: "Wait to Respond",
+  authority: "Emotional",
+  profile: "3/5",
+  definition: "Single Definition",
+  signature: "Satisfaction",
+  notSelf: "Frustration",
+  cross: "Cross of Tension",
+  activeGates: preparedChartFixture.activeGates,
+  channels: preparedChartFixture.activeChannels.map((channel) => ({ ...channel, id: channel.name })),
+};
+const foundationalProperties = [
+  { label: "Type", value: chartView.type },
+  { label: "Strategy", value: chartView.strategy },
+  { label: "Not-self theme", value: chartView.notSelf },
+  { label: "Signature", value: chartView.signature },
+  { label: "Authority", value: chartView.authority },
+  { label: "Profile", value: chartView.profile },
+  { label: "Definition", value: chartView.definition },
+  { label: "Incarnation cross", value: chartView.cross },
+];
+const displayName = String(savedProfile?.name || defaultHumanDesignProfile.name);
+const displayBirthline = savedProfile
+  ? [savedProfile.birthDate, savedProfile.birthTime, savedProfile.birthPlace].filter(Boolean).join(" · ")
+  : formatFixtureBirthline(defaultHumanDesignProfile);
+
+---
+
+<BaseLayout seo={seo} bodyClass="hd-route hd-reading">
+  <Header
+    homeHref={homeHref}
+    plateHref="#bodygraph"
+    typesHref={`${homeHref}#types`}
+    readingsHref={`${homeHref}#readings`}
+    questionsHref={`${homeHref}#faq`}
+    chartHref={chartHref}
+  />
+
+  <main class="hd-bodygraph-page" data-reading-slug={slug}>
+    <section class="hd-explorer-shell" id="bodygraph" aria-labelledby="reading-title">
+      <header class="hd-explorer-heading">
+        <div>
+          <p class="hd-route-kicker">Bodygraph explorer</p>
+          <h1 id="reading-title" data-result-heading>{displayName}'s bodygraph</h1>
+          <p data-result-birthline>Calculated for {displayBirthline}</p>
+        </div>
+        <a class="hd-secondary-action" href={chartHref}>← Start over</a>
+      </header>
+
+      <div class="hd-explorer-workspace">
+        <div class="hd-chart-column">
+          <nav class="hd-explorer-controls" aria-label="Bodygraph view controls">
+            <div class="hd-layer-controls" aria-label="Chart layer">
+              <button type="button" data-properties-open>Properties</button>
+            </div>
+          </nav>
+          <section class="hd-chart-workspace" aria-label="Human Design bodygraph and planetary activations">
+            <div class="hd-chart-canvas">
+              <UpastroBodyGraphCanvas theme="light" chartData={chartView.chartData} interactive={false} client:only="react">
+                <div slot="fallback" class="hd-chart-fallback" aria-label="Loading interactive bodygraph">
+                  <BodyGraphCanvas theme="light" />
+                </div>
+              </UpastroBodyGraphCanvas>
+              <footer>
+                <p>{chartView.definedCenters.length} defined centres · {chartView.activeGates.length} active gates · {chartView.channels.length} active channels</p>
+                <div><span><i></i>Defined</span><span><i></i>Open</span></div>
+              </footer>
+            </div>
+          </section>
+        </div>
+        <BodyGraphGuidePanel properties={foundationalProperties} chart={chartView} unlocked={hasFullReadingAccess} upgradeHref={`${homeHref}#readings`} />
+      </div>
+    </section>
+  </main>
+
+  <ChartPropertiesDrawer activeGates={chartView.activeGates}
+    channels={chartView.channels}
+    definedCenters={chartView.definedCenters}
+    centerDetails={chartView.centerDetails}
+    gateDetails={chartView.gateDetails}
+    unlocked={hasFullReadingAccess}
+    upgradeHref={`${homeHref}#readings`}
+  />
+
+  <Footer
+    plateHref="#bodygraph"
+    readingsHref={`${homeHref}#readings`}
+    questionsHref={`${homeHref}#faq`}
+    chartHref={chartHref}
+  />
+</BaseLayout>
+
+<script is:inline define:vars={{ slug, hasFullReadingAccess }}>
+  (() => {
+    window.astroPagesTrack?.("bodygraph_viewed", { reading_id: slug.startsWith("hd_chart_") ? slug : "fixture" });
+    try {
+      const raw = window.sessionStorage.getItem(`hd:reading:${slug}`);
+      if (raw) {
+        const profile = JSON.parse(raw);
+        const name = String(profile.name || "My chart").slice(0, 80);
+        const heading = document.querySelector("[data-result-heading]");
+        const birthline = document.querySelector("[data-result-birthline]");
+        if (heading) heading.textContent = `${name}'s bodygraph`;
+        if (birthline) {
+          const [year, month, day] = String(profile.birthDate || "").split("-").map(Number);
+          const formattedDate = year && month && day
+            ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })
+                .format(new Date(Date.UTC(year, month - 1, day)))
+            : profile.birthDate;
+          const details = [formattedDate, profile.birthTime || "Time estimated", profile.birthCity].filter(Boolean).join(" · ");
+          birthline.textContent = `Calculated for ${details}`;
+        }
+      }
+    } catch {}
+
+    const checkoutParams = new URLSearchParams(window.location.search);
+    const checkoutSessionId = checkoutParams.get("session_id") || "";
+    if (!hasFullReadingAccess && checkoutParams.get("checkout") === "success" && checkoutSessionId) {
+      const checkPayment = async (attempt = 0) => {
+        try {
+          const response = await fetch(`/api/checkout/session-status?session_id=${encodeURIComponent(checkoutSessionId)}`, { cache: "no-store" });
+          const payload = await response.json();
+          if (payload?.paymentStatus === "paid") {
+            window.location.replace(`/human-design/${encodeURIComponent(slug)}#bodygraph`);
+            return;
+          }
+        } catch {}
+        if (attempt < 10) window.setTimeout(() => { void checkPayment(attempt + 1); }, 1500);
+      };
+      void checkPayment();
+    }
+
+  })();
+</script>

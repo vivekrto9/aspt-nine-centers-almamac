@@ -1,0 +1,178 @@
+---
+import { HOW_IT_RUNS } from "../../../data/human-design.constants.ts";
+
+const { eyebrow = "How it runs", title = "Four steps, no homework", eyebrowEdit = {}, titleEdit = {} } = Astro.props;
+---
+
+<section class="how-it-runs-section" data-how-it-runs-section>
+  <div class="section-header-grid">
+    <span class="section-number">05</span>
+    <div class="section-title-wrap">
+      <p class="section-eyebrow" {...eyebrowEdit}>{eyebrow}</p>
+      <h2 class="section-heading" {...titleEdit}>{title}</h2>
+    </div>
+  </div>
+
+  <div class="steps-grid">
+    {HOW_IT_RUNS.map((s) => (
+      <div class="step-card">
+        <span class={`step-marker ${s.accent ? 'accent-marker' : 'cobalt-marker'}`}></span>
+        <p class="step-num">{s.step}</p>
+        <h3 class="step-title">{s.title}</h3>
+        <p class="step-body">{s.body}</p>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .how-it-runs-section {
+    padding: 104px 32px 0;
+  }
+
+  .section-header-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    align-items: end;
+    margin-bottom: 52px;
+  }
+
+  .section-number {
+    grid-column: 1 / span 2;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.72;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px #2B45C8;
+  }
+
+  .section-title-wrap {
+    grid-column: 4 / span 7;
+  }
+
+  .section-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #B62F49;
+    margin: 0 0 12px;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(28px, 3.6vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin: 0;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-top: 1.5px solid #16203C;
+  }
+
+  .step-card {
+    padding: 26px 26px 0 26px;
+    border-right: 1px solid rgba(10, 16, 48, 0.2);
+  }
+
+  .step-card:first-child {
+    padding-left: 0;
+  }
+
+  .step-card:last-child {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .step-marker {
+    width: 13px;
+    height: 13px;
+    display: block;
+    margin: -33px 0 26px;
+  }
+
+  .accent-marker {
+    background: #B62F49;
+  }
+
+  .cobalt-marker {
+    background: #2B45C8;
+  }
+
+  .step-num {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 0 0 12px;
+  }
+
+  .step-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 19px;
+    line-height: 1.12;
+    letter-spacing: -0.04em;
+    margin: 0 0 8px;
+  }
+
+  .step-body {
+    font-size: 15.5px;
+    line-height: 1.58;
+    color: #3C4661;
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 900px) {
+    .section-header-grid {
+      grid-template-columns: 1fr;
+    }
+    .section-number, .section-title-wrap {
+      grid-column: span 1;
+    }
+    .steps-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .step-card {
+      padding: 24px;
+      border-bottom: 1px solid rgba(10, 16, 48, 0.2);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .steps-grid {
+      grid-template-columns: 1fr;
+    }
+    .step-card {
+      padding: 24px 0;
+      border-right: none;
+    }
+  }
+</style>
+
+<style>
+  .how-it-runs-section { width: min(1200px, calc(100% - 52px)); margin: 0 auto; background: transparent; color: var(--color-ink); padding: 34px 0 74px; border-top: 1px solid var(--color-ink); display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 44px; align-items: start; }
+  .section-header-grid { display: block; margin: 0; }
+  .section-number { font-family: var(--font-mono); font-size: 0; color: var(--color-accent); }
+  .section-number::after { content: "§ IV"; font-size: 10.5px; letter-spacing: 0.2em; }
+  .section-eyebrow { display: none; }
+  .section-heading { font-family: var(--font-display); font-size: 36px; font-weight: 500; line-height: 1.08; letter-spacing: 0; margin: 16px 0 0; }
+  .steps-grid { display: grid; grid-template-columns: 1fr; gap: 0; border: 0; }
+  .step-card { min-height: 0; display: grid; grid-template-columns: 56px 1fr; column-gap: 22px; background: transparent; color: var(--color-ink); border: 0; border-bottom: 1px solid var(--color-subtle-border); padding: 20px 0; }
+  .step-marker { display: none; }
+  .step-num { grid-column: 1; grid-row: 1 / span 2; color: var(--color-cobalt); font-family: var(--font-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.14em; }
+  .step-title { grid-column: 2; font-family: var(--font-display); font-size: 20px; font-weight: 500; letter-spacing: 0; margin: 0 0 6px; }
+  .step-body { grid-column: 2; color: var(--color-text-dark); font-size: 15.5px; line-height: 1.6; margin: 0; }
+
+  @media (max-width: 760px) { .how-it-runs-section { width: min(100% - 32px, 1200px); grid-template-columns: 1fr; gap: 24px; } }
+</style>

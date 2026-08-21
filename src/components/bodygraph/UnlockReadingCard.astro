@@ -1,0 +1,14 @@
+---
+interface Props {
+  upgradeHref?: string;
+}
+
+const { upgradeHref = "/#readings" } = Astro.props;
+---
+
+<section class="hd-unlock-card" aria-label="Premium reading locked">
+  <span class="hd-unlock-card__icon" aria-hidden="true"></span>
+  <h3>Unlock the Full Detailed Reading</h3>
+  <p>Upgrade to explore the rest of this section in your Human Design analysis.</p>
+  <a href={upgradeHref}>Upgrade Now</a>
+</section>

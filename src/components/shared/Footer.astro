@@ -1,0 +1,124 @@
+---
+interface Props {
+  brandName?: string;
+  brandEdit?: Record<string, string>;
+  noteEdit?: Record<string, string>;
+  plateHref?: string;
+  readingsHref?: string;
+  questionsHref?: string;
+  chartHref?: string;
+}
+
+const {
+  brandName = "Nine Centres",
+  brandEdit = {},
+  noteEdit = {},
+  plateHref = "#plate",
+  readingsHref = "#readings",
+  questionsHref = "#faq",
+  chartHref = "#chart",
+} = Astro.props;
+---
+
+<footer class="hd-footer" data-hd-footer>
+  <div class="footer-top">
+    <nav class="footer-nav" aria-label="Footer Navigation">
+      <a href={plateHref} class="footer-link">Plate</a>
+      <a href={readingsHref} class="footer-link">Readings</a>
+      <a href={questionsHref} class="footer-link">Questions</a>
+      <a href={chartHref} class="footer-link cta-accent">Free chart</a>
+    </nav>
+    <p class="footer-copyright" {...noteEdit}>
+      &copy; 2026 &middot; {brandName.toLowerCase()}
+    </p>
+  </div>
+  <p class="footer-wordmark" {...brandEdit}>
+    {brandName}
+  </p>
+</footer>
+
+<style>
+  .hd-footer {
+    background: #2B45C8;
+    color: #E7E9EF;
+    padding: 48px 32px 20px;
+    border-top: 1.5px solid #16203C;
+  }
+
+  .footer-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 26px;
+  }
+
+  .footer-link {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .footer-link:hover {
+    color: #E7E9EF;
+  }
+
+  .footer-link.cta-accent {
+    color: #B62F49;
+  }
+
+  .footer-copyright {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #D8DEEC;
+    margin: 0;
+  }
+
+  .footer-wordmark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(40px, 9.4vw, 150px);
+    line-height: 0.82;
+    letter-spacing: -0.07em;
+    margin: 0;
+    color: transparent;
+    -webkit-text-stroke: 1.5px #D8DEEC;
+    user-select: none;
+  }
+
+  @media (max-width: 640px) {
+    .hd-footer {
+      padding: 36px 20px 16px;
+    }
+    .footer-top {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 18px;
+    }
+  }
+</style>
+
+<style>
+  .hd-footer { width: min(1200px, calc(100% - 52px)); margin: 0 auto; background: transparent; color: var(--color-ink); border-top: 3px double var(--color-ink); padding: 32px 0 46px; }
+  .footer-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .footer-nav { display: flex; flex-wrap: wrap; gap: 22px; }
+  .footer-link, .footer-copyright { color: #5A6480; font-family: var(--font-mono); font-size: 10px; font-weight: 400; letter-spacing: 0.16em; text-transform: uppercase; }
+  .footer-link:hover, .footer-link.cta-accent:hover { color: var(--color-accent); }
+  .footer-link.cta-accent { color: #5A6480; }
+  .footer-copyright { color: #7C87A0; margin: 0; }
+  .footer-wordmark { display: none; }
+  @media (max-width: 760px) { .hd-footer { width: min(100% - 32px, 1200px); } .footer-top { align-items: flex-start; flex-direction: column; } }
+</style>

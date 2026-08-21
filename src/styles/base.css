@@ -1,0 +1,101 @@
+:root {
+  color-scheme: light;
+  --color-cobalt: #2B45C8;
+  --color-cream: #E7E9EF;
+  --color-paper: #F6F7FA;
+  --color-ink: #16203C;
+  --color-accent: #B62F49;
+  --color-muted: #7C87A0;
+  --color-soft-blue: #D8DEEC;
+  --color-subtle-border: #C3C8D6;
+  --color-text-dark: #3C4661;
+  --color-text-light: #F1F4FA;
+
+  --font-display: 'Zilla Slab', Georgia, serif;
+  --font-sans: 'Work Sans', Helvetica, Arial, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Bodygraph Canvas Custom Tokens */
+  --hd-bg-primary: #E7E9EF;
+  --hd-bg-secondary: #16203C;
+  --hd-text-primary: #16203C;
+  --hd-text-secondary: #5A6480;
+  --hd-cta-primary: #B62F49;
+  --hd-pipe-bg: #DCE0E9;
+  --hd-personality-pipe: #16203C;
+  --hd-center-head: #FFFFFF;
+  --hd-center-ajna: #2B45C8;
+  --hd-center-throat: #FFFFFF;
+  --hd-center-g: #2B45C8;
+  --hd-center-ego: #B62F49;
+  --hd-center-spleen: #2B45C8;
+  --hd-center-sacral: #FFFFFF;
+  --hd-center-solar: #B62F49;
+  --hd-center-root: #2B45C8;
+  --hd-gate-active-bg: #B62F49;
+  --hd-gate-active-text: #FFFFFF;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-cream);
+  background-image: repeating-linear-gradient(0deg, rgba(22, 32, 60, 0.035) 0 1px, transparent 1px 3px);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+a {
+  color: var(--color-cobalt);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--color-accent);
+}
+
+input, select, button, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::placeholder {
+  color: var(--color-muted);
+}
+
+::selection {
+  background: var(--color-cobalt);
+  color: var(--color-paper);
+}
+
+.site-wrap {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Reading/type offsets collapse on compact screens. */
+.stagger-1 { margin-left: 0%; }
+.stagger-2 { margin-left: 5%; }
+.stagger-3 { margin-left: 10%; }
+
+@media (max-width: 768px) {
+  .stagger-1, .stagger-2, .stagger-3 {
+    margin-left: 0 !important;
+  }
+}
+
+.site-wrap {
+  max-width: 100%;
+  overflow-x: clip;
+}

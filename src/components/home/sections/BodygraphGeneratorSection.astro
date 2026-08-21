@@ -1,0 +1,618 @@
+---
+import PlaceAutocomplete from "../../shared/PlaceAutocomplete.astro";
+
+interface Props {
+  resultHref?: string;
+  title?: string;
+  description?: string;
+  titleEdit?: Record<string, string>;
+  descriptionEdit?: Record<string, string>;
+}
+
+const { resultHref = "/human-design", title = "Generate your bodygraph", description = "The chart plus a short summary of your type, authority and profile. Do not know your birth time? An estimate is fine.", titleEdit = {}, descriptionEdit = {} } = Astro.props;
+---
+
+<section id="chart" class="generator-section" data-generator-section>
+  <div class="generator-container">
+    <!-- Form & Result Card -->
+    <div class="tilted-card" data-tilted-card>
+
+      <!-- FORM STATE -->
+      <div id="chart-form-view" class="form-view generator-card-view" data-form-view>
+        <div class="form-header">
+          <p class="tag-accent">No charge</p>
+          <p class="tag-muted">1 min</p>
+        </div>
+        <h2 class="card-title" {...titleEdit}>{title}</h2>
+        <p class="card-desc" {...descriptionEdit}>{description}</p>
+
+        <form id="bodygraph-form" class="form-grid">
+          <div class="field-full">
+            <label for="cs-name" class="field-label">Name</label>
+            <input
+              id="cs-name"
+              name="name"
+              type="text"
+              placeholder="First name"
+              required
+              class="field-input"
+            />
+          </div>
+          <div class="field-full">
+            <label for="cs-email" class="field-label">Email</label>
+            <input
+              id="cs-email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              class="field-input"
+            />
+          </div>
+          <div class="field-half">
+            <label for="cs-date" class="field-label">Birth date</label>
+            <input
+              id="cs-date"
+              name="birth_date"
+              type="date"
+              required
+              class="field-input"
+            />
+          </div>
+          <div class="field-half">
+            <label for="cs-time" class="field-label">Birth time</label>
+            <input
+              id="cs-time"
+              name="birth_time"
+              type="time"
+              class="field-input"
+            />
+          </div>
+          <PlaceAutocomplete
+            id="cs-city"
+            name="birth_city"
+            wrapperClass="field-full"
+            labelClass="field-label"
+            inputClass="field-input"
+            dateInputId="cs-date"
+            timeInputId="cs-time"
+          />
+          <button type="submit" class="submit-btn" data-submit-btn>
+            Generate my free chart
+          </button>
+          <p class="form-disclaimer">
+            Birth data draws the chart. Nothing else.
+          </p>
+          <p class="form-status" data-form-status aria-live="polite" hidden></p>
+        </form>
+      </div>
+
+      <!-- RESULT STATE -->
+      <div id="chart-result-view" class="result-view generator-card-view" data-result-view aria-live="polite" hidden>
+        <div class="form-header result-header">
+          <p class="tag-accent">Your free chart</p>
+          <button type="button" class="start-over-btn" data-start-over>Start over</button>
+        </div>
+        <h3 class="result-heading" data-result-heading>You are a Generator 3/5.</h3>
+        <p class="result-birthline" data-result-birthline></p>
+
+        <div class="result-keys-list">
+          <div class="key-row"><span class="key-label">Type</span><span class="key-value" data-result-key="type">Generator</span></div>
+          <div class="key-row"><span class="key-label">Strategy</span><span class="key-value" data-result-key="strategy">Respond</span></div>
+          <div class="key-row"><span class="key-label">Authority</span><span class="key-value" data-result-key="authority">Emotional</span></div>
+          <div class="key-row"><span class="key-label">Profile</span><span class="key-value" data-result-key="profile">3/5</span></div>
+          <div class="key-row"><span class="key-label">Definition</span><span class="key-value" data-result-key="definition">Single</span></div>
+          <div class="key-row"><span class="key-label">Incarnation cross</span><span class="key-value" data-result-key="cross">Cross of Tension</span></div>
+        </div>
+
+        <div class="result-notes-list">
+          <div class="note-card">
+            <h4 class="note-title" data-result-note-title="authority">Follow your inner authority</h4>
+            <p class="note-body" data-result-note-copy="authority">Use your chart's decision-making process in ordinary, low-stakes choices first.</p>
+          </div>
+          <div class="note-card">
+            <h4 class="note-title" data-result-note-title="centres">Your defined centres</h4>
+            <p class="note-body" data-result-note-copy="centres">Defined centres describe energy that operates consistently in your chart.</p>
+          </div>
+          <div class="note-card">
+            <h4 class="note-title" data-result-note-title="profile">Explore your profile</h4>
+            <p class="note-body" data-result-note-copy="profile">Your two profile lines describe how you learn and how others tend to recognise you.</p>
+          </div>
+        </div>
+
+        <div class="result-actions">
+          <a class="action-btn-primary" href={resultHref} data-result-link>See bodygraph</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side note -->
+    <div class="side-note-box">
+      <p class="side-note-text">
+        Read by one person. Sent within a day.
+      </p>
+    </div>
+  </div>
+</section>
+
+<script is:inline define:vars={{ resultHref }}>
+  (() => {
+    const form = document.getElementById("bodygraph-form");
+    const submit = form?.querySelector("[data-submit-btn]");
+    const status = form?.querySelector("[data-form-status]");
+    const formView = document.querySelector("[data-form-view]");
+    const resultView = document.querySelector("[data-result-view]");
+    const resultHeading = resultView?.querySelector("[data-result-heading]");
+    const resultBirthline = resultView?.querySelector("[data-result-birthline]");
+    const resultLink = resultView?.querySelector("[data-result-link]");
+    const startOver = resultView?.querySelector("[data-start-over]");
+    if (!(form instanceof HTMLFormElement) || !(submit instanceof HTMLButtonElement)) return;
+
+    const formatBirthDate = (value) => {
+      if (!value) return "Birth date not supplied";
+      const [year, month, day] = value.split("-").map(Number);
+      if (!year || !month || !day) return value;
+      return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+        .format(new Date(Date.UTC(year, month - 1, day)));
+    };
+
+    form.addEventListener("submit", async (submitEvent) => {
+      submitEvent.preventDefault();
+      if (!form.reportValidity()) return;
+      const values = new FormData(form);
+      const fixture = {
+        name: String(values.get("name") || "My chart").slice(0, 80),
+        email: String(values.get("email") || "").slice(0, 180),
+        birthDate: String(values.get("birth_date") || ""),
+        birthTime: String(values.get("birth_time") || "12:00"),
+        birthCity: String(values.get("birth_city") || "").slice(0, 180),
+        placeId: String(values.get("placeId") || ""),
+        latitude: String(values.get("latitude") || ""),
+        longitude: String(values.get("longitude") || ""),
+        timezoneName: String(values.get("timezoneName") || ""),
+        timezoneOffset: String(values.get("timezoneOffset") || ""),
+      };
+      submit.disabled = true;
+      submit.textContent = "Drawing your chart…";
+      if (status instanceof HTMLElement) {
+        status.hidden = false;
+        status.textContent = "Calculating your design and personality activations.";
+      }
+      try {
+        window.astroPagesTrack?.("free_chart_submitted", { source: "homepage" });
+        const response = await fetch("/api/astropages/generated-site/human-design", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(fixture),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload?.readingId) throw new Error(payload?.message || "Your chart could not be generated. Please try again.");
+        const slug = String(payload.readingId);
+        try {
+          window.sessionStorage.setItem(`hd:reading:${slug}`, JSON.stringify({ ...fixture, result: payload.result }));
+          window.localStorage.setItem("hd:last-reading-id", slug);
+        } catch {}
+        const destination = new URL(resultHref, window.location.origin);
+        destination.pathname = `${destination.pathname.replace(/\/$/, "")}/${encodeURIComponent(slug)}`;
+        const type = String(payload?.view?.type || "Human Design");
+        const profile = String(payload?.view?.profile || "chart");
+        ["type", "strategy", "authority", "profile", "definition", "cross"].forEach((key) => {
+          const target = resultView?.querySelector(`[data-result-key="${key}"]`);
+          if (target && payload?.view?.[key]) target.textContent = String(payload.view[key]);
+        });
+        const definedCount = Array.isArray(payload?.view?.definedCenters) ? payload.view.definedCenters.length : 0;
+        const authorityTitle = resultView?.querySelector('[data-result-note-title="authority"]');
+        const authorityCopy = resultView?.querySelector('[data-result-note-copy="authority"]');
+        const centresTitle = resultView?.querySelector('[data-result-note-title="centres"]');
+        const profileTitle = resultView?.querySelector('[data-result-note-title="profile"]');
+        if (authorityTitle) authorityTitle.textContent = `${String(payload?.view?.authority || "Inner authority")} decisions`;
+        if (authorityCopy) authorityCopy.textContent = `Your authority is ${String(payload?.view?.authority || "shown in the chart")}. Practice noticing its signal before relying on mental pros and cons.`;
+        if (centresTitle) centresTitle.textContent = `${definedCount} of 9 centres defined`;
+        if (profileTitle) profileTitle.textContent = `${profile} profile`;
+        if (resultHeading instanceof HTMLElement) {
+          resultHeading.textContent = fixture.name && fixture.name !== "My chart"
+            ? `${fixture.name}, your type is ${type}${profile !== "chart" ? ` ${profile}` : ""}.`
+            : `Your type is ${type}${profile !== "chart" ? ` ${profile}` : ""}.`;
+        }
+        if (resultBirthline instanceof HTMLElement) {
+          resultBirthline.textContent = `Calculated for ${formatBirthDate(fixture.birthDate)} · ${fixture.birthTime || "12:00"} · ${fixture.birthCity}`;
+        }
+        if (resultLink instanceof HTMLAnchorElement) {
+          resultLink.href = `${destination.pathname}${destination.search}`;
+        }
+        if (formView instanceof HTMLElement) formView.hidden = true;
+        if (resultView instanceof HTMLElement) resultView.hidden = false;
+        window.astroPagesTrack?.("free_chart_generated", { source: "homepage", reading_id: slug, type });
+      } catch (caught) {
+        submit.disabled = false;
+        submit.textContent = "Generate my free chart";
+        if (status instanceof HTMLElement) {
+          status.hidden = false;
+          status.textContent = caught instanceof Error ? caught.message : "Your chart could not be generated. Please try again.";
+        }
+        window.astroPagesTrack?.("free_chart_failed", { source: "homepage" });
+      }
+    });
+
+    startOver?.addEventListener("click", () => {
+      form.reset();
+      submit.disabled = false;
+      submit.textContent = "Generate my free chart";
+      if (status instanceof HTMLElement) {
+        status.hidden = true;
+        status.textContent = "";
+      }
+      if (resultView instanceof HTMLElement) resultView.hidden = true;
+      if (formView instanceof HTMLElement) formView.hidden = false;
+      form.querySelector("input")?.focus();
+    });
+  })();
+</script>
+
+<style>
+  .generator-section {
+    background-image: linear-gradient(#2B45C8 0 46%, #E7E9EF 46% 100%);
+    padding: 0 32px;
+  }
+
+  .generator-container {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+  }
+
+  .tilted-card {
+    grid-column: 2 / span 6;
+    transform: rotate(-1.1deg);
+    background: #E7E9EF;
+    border: 1.5px solid #16203C;
+    box-shadow: 16px 16px 0 #B62F49;
+    padding: 36px 34px 38px;
+  }
+
+  .generator-card-view {
+    animation: card-view-enter 220ms ease-out both;
+  }
+
+  .generator-card-view[hidden] {
+    display: none;
+  }
+
+  @keyframes card-view-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+
+  .result-header {
+    margin-bottom: 20px;
+  }
+
+  .tag-accent {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #2B45C8;
+    margin: 0;
+  }
+
+  .tag-muted {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 0;
+  }
+
+  .start-over-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .start-over-btn:hover {
+    color: #2B45C8;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3vw, 38px);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    margin: 0 0 14px;
+  }
+
+  .card-desc {
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: #3C4661;
+    margin: 0 0 30px;
+    text-wrap: pretty;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+
+  .field-full {
+    grid-column: span 2;
+    display: grid;
+    gap: 7px;
+  }
+
+  .field-half {
+    grid-column: span 1;
+    display: grid;
+    gap: 7px;
+  }
+
+  .field-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #3C4661;
+  }
+
+  .field-input {
+    background: #FFFFFF;
+    border: 1.5px solid #16203C;
+    padding: 12px 14px;
+    font-size: 16px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .field-input:focus {
+    border-color: #B62F49;
+  }
+
+  .submit-btn {
+    grid-column: span 2;
+    margin-top: 6px;
+    background: #2B45C8;
+    color: #E7E9EF;
+    border: 1.5px solid #16203C;
+    padding: 17px 18px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .submit-btn:hover {
+    background: #B62F49;
+    color: #16203C;
+  }
+
+  .form-disclaimer {
+    grid-column: span 2;
+    font-size: 9.5px;
+    font-weight: 700;
+    line-height: 1.8;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 0;
+  }
+
+  .form-status {
+    grid-column: span 2;
+    margin: 0;
+    color: #2B45C8;
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  /* Result view styling */
+  .result-heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(24px, 2.6vw, 32px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+    margin: 0 0 10px;
+  }
+
+  .result-birthline {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #7C87A0;
+    margin: 0 0 26px;
+  }
+
+  .result-keys-list {
+    border-top: 1.5px solid #16203C;
+  }
+
+  .key-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(10, 16, 48, 0.18);
+  }
+
+  .key-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #3C4661;
+  }
+
+  .key-value {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 16px;
+    letter-spacing: -0.03em;
+    text-align: right;
+  }
+
+  .result-notes-list {
+    display: grid;
+    gap: 20px;
+    margin-top: 26px;
+  }
+
+  .note-card {
+    border-left: 3px solid #B62F49;
+    padding-left: 16px;
+  }
+
+  .note-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    margin: 0 0 7px;
+  }
+
+  .note-body {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #3C4661;
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  .result-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  .action-btn-primary {
+    flex: 1 1 auto;
+    background: #2B45C8;
+    color: #E7E9EF;
+    border: 1.5px solid #16203C;
+    padding: 14px 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .action-btn-primary:hover {
+    background: #B62F49;
+    color: #16203C;
+  }
+
+  .side-note-box {
+    grid-column: 9 / span 3;
+    align-self: end;
+    padding-bottom: 56px;
+  }
+
+  .side-note-text {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #3C4661;
+    margin: 0;
+    max-width: 24ch;
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 900px) {
+    .generator-container {
+      grid-template-columns: 1fr;
+    }
+    .tilted-card {
+      grid-column: span 1;
+      transform: none;
+      box-shadow: 10px 10px 0 #B62F49;
+    }
+    .side-note-box {
+      grid-column: span 1;
+      padding-bottom: 20px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .generator-section {
+      padding: 0 16px;
+    }
+    .tilted-card {
+      padding: 24px 20px;
+    }
+    .field-half {
+      grid-column: span 2;
+    }
+    .key-row {
+      align-items: flex-start;
+    }
+    .key-value {
+      max-width: 60%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .generator-card-view {
+      animation: none;
+    }
+  }
+</style>
+
+<style>
+  .generator-section { background: transparent; padding: 38px 0 44px 44px; }
+  .generator-container { display: block; max-width: none; }
+  .tilted-card { transform: rotate(-0.6deg); background: var(--color-paper); border: 1px dashed var(--color-ink); box-shadow: none; padding: 26px 24px; }
+  .form-header { border-bottom: 1px solid var(--color-subtle-border); margin-bottom: 18px; padding-bottom: 14px; }
+  .tag-accent, .tag-muted, .start-over-btn, .field-label, .form-disclaimer, .result-birthline, .key-label { font-family: var(--font-mono); font-weight: 400; }
+  .tag-accent { color: var(--color-accent); }
+  .tag-accent::before { content: "Coupon · "; }
+  .tag-muted { color: #5A6480; }
+  .card-title, .result-heading, .key-value, .note-title { font-family: var(--font-display); letter-spacing: -0.01em; }
+  .card-title { font-size: 31px; font-weight: 500; line-height: 1.08; }
+  .card-desc { color: var(--color-text-dark); font-size: 15px; margin-bottom: 22px; }
+  .form-grid { gap: 14px; }
+  .field-full, .field-half { gap: 6px; }
+  .field-input { border: 1px solid var(--color-ink); padding: 11px 12px; font-size: 15px; }
+  .field-input:focus { border-color: var(--color-cobalt); outline: 2px solid rgba(43, 69, 200, 0.18); outline-offset: 1px; }
+  .submit-btn, .action-btn-primary { background: var(--color-ink); color: var(--color-paper); border: 0; font-family: var(--font-sans); font-size: 15px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .submit-btn:hover, .action-btn-primary:hover { background: var(--color-cobalt); color: #fff; }
+  .form-disclaimer { color: var(--color-muted); letter-spacing: 0.1em; line-height: 1.7; }
+  .form-status { color: var(--color-accent); }
+  .result-keys-list { border-top: 1px solid var(--color-subtle-border); }
+  .key-row { border-bottom: 1px solid var(--color-subtle-border); padding: 10px 0; }
+  .note-card { border-left: 2px solid var(--color-accent); }
+  .side-note-box { display: none; }
+
+  @media (max-width: 900px) { .generator-section { padding: 32px 0; } .tilted-card { transform: none; } }
+  @media (max-width: 640px) { .generator-section { padding-inline: 0; } }
+</style>
