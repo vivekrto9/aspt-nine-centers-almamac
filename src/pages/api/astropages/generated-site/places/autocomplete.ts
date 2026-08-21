@@ -5,45 +5,18 @@ import {
   normalizePlacesInput,
   normalizePlacesLanguage,
   normalizeSessionToken,
+  placesCapabilityKey,
   placesFeature,
+  placesMissingSecretNames,
 } from "../../../../../server/aggregator/places/google-places.ts";
 import { getRuntimeEnv } from "../../../../../server/generated-site/request.ts";
-import { errorResponse, jsonResponse } from "../../../../../server/generated-site/responses.ts";
+import {
+  blockedProviderResponse,
+  errorResponse,
+  jsonResponse,
+} from "../../../../../server/generated-site/responses.ts";
 
 export const prerender = false;
-
-const openMeteoPredictions = async (input: string, language: string) => {
-  const params = new URLSearchParams({
-    name: input,
-    count: "7",
-    language: /^[a-z]{2}$/i.test(language) ? language.toLowerCase() : "en",
-    format: "json",
-  });
-  const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`, {
-    headers: { accept: "application/json" },
-  });
-  if (!response.ok) throw new Error("Fallback place search failed.");
-  const payload = await response.json() as { results?: Array<Record<string, unknown>> };
-  return [...(payload.results ?? [])]
-    .sort((first, second) => Number(second.population ?? 0) - Number(first.population ?? 0))
-    .flatMap((entry) => {
-    const lat = Number(entry.latitude);
-    const lon = Number(entry.longitude);
-    const timezone = String(entry.timezone ?? "").trim();
-    const mainText = String(entry.name ?? "").trim();
-    const secondaryParts = [entry.admin1, entry.country]
-      .map((value) => String(value ?? "").trim())
-      .filter((value, index, items) => value && items.indexOf(value) === index);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !timezone || !mainText) return [];
-    const description = [mainText, ...secondaryParts].join(", ");
-    return [{
-      placeId: `om|${lat}|${lon}|${timezone}|${description}`,
-      description,
-      mainText,
-      secondaryText: secondaryParts.join(", "),
-    }];
-    });
-};
 
 const readyResponse = (predictions: Array<Record<string, unknown>>) => jsonResponse({
   status: "ready",
@@ -63,11 +36,12 @@ export const GET: APIRoute = async (context) => {
 
   const apiKey = await getGooglePlacesApiKey(env);
   if (!apiKey) {
-    try {
-      return readyResponse(await openMeteoPredictions(input, language));
-    } catch {
-      return errorResponse(placesFeature, "Place suggestions are temporarily unavailable.", 502);
-    }
+    return blockedProviderResponse({
+      feature: placesFeature,
+      capabilityKey: placesCapabilityKey,
+      missingSecretNames: placesMissingSecretNames,
+      message: "Place search is temporarily unavailable. Please try again later.",
+    });
   }
 
   const params = new URLSearchParams({ input, key: apiKey, language, types: "(cities)" });

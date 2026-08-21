@@ -13,22 +13,6 @@ import { blockedProviderResponse, errorResponse, jsonResponse } from "../../../.
 
 export const prerender = false;
 
-const parseOpenMeteoPlace = (placeId: string, date: string | null, time: string | null) => {
-  if (!placeId.startsWith("om|")) return null;
-  const [, latText, lonText, timezone, ...addressParts] = placeId.split("|");
-  const lat = Number(latText);
-  const lon = Number(lonText);
-  const formattedAddress = addressParts.join("|").trim();
-  if (!Number.isFinite(lat) || !Number.isFinite(lon) || !timezone || !formattedAddress) return null;
-  const offset = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    timeZoneName: "longOffset",
-  }).formatToParts(date ? new Date(`${date}T${time || "00:00"}:00Z`) : new Date())
-    .find((part) => part.type === "timeZoneName")?.value
-    ?.replace("GMT", "UTC") || "";
-  return { placeId, formattedAddress, lat, lon, timezone, offset };
-};
-
 export const GET: APIRoute = async (context) => {
   const env = await getRuntimeEnv(context);
   const url = new URL(context.request.url);
@@ -37,17 +21,6 @@ export const GET: APIRoute = async (context) => {
   const date = url.searchParams.get("date");
   const time = url.searchParams.get("time");
   if (!placeId) return errorResponse(placesFeature, "Place id is required.", 400);
-
-  const openMeteoPlace = parseOpenMeteoPlace(placeId, date, time);
-  if (openMeteoPlace) {
-    return jsonResponse({
-      status: "ready",
-      state: "ready",
-      feature: placesFeature,
-      message: "Place details loaded.",
-      data: { place: openMeteoPlace },
-    });
-  }
 
   const apiKey = await getGooglePlacesApiKey(env);
   if (!apiKey) return blockedProviderResponse({

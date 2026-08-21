@@ -176,6 +176,7 @@ const { resultHref = "/human-design", title = "Generate your bodygraph", descrip
       submit.textContent = "Drawing your chart…";
       if (status instanceof HTMLElement) {
         status.hidden = false;
+        status.dataset.state = "loading";
         status.textContent = "Calculating your design and personality activations.";
       }
       try {
@@ -228,6 +229,7 @@ const { resultHref = "/human-design", title = "Generate your bodygraph", descrip
         submit.textContent = "Generate my free chart";
         if (status instanceof HTMLElement) {
           status.hidden = false;
+          status.dataset.state = "error";
           status.textContent = caught instanceof Error ? caught.message : "Your chart could not be generated. Please try again.";
         }
         window.astroPagesTrack?.("free_chart_failed", { source: "homepage" });
@@ -240,6 +242,7 @@ const { resultHref = "/human-design", title = "Generate your bodygraph", descrip
       submit.textContent = "Generate my free chart";
       if (status instanceof HTMLElement) {
         status.hidden = true;
+        delete status.dataset.state;
         status.textContent = "";
       }
       if (resultView instanceof HTMLElement) resultView.hidden = true;
@@ -608,6 +611,7 @@ const { resultHref = "/human-design", title = "Generate your bodygraph", descrip
   .submit-btn:hover, .action-btn-primary:hover { background: var(--color-cobalt); color: #fff; }
   .form-disclaimer { color: var(--color-muted); letter-spacing: 0.1em; line-height: 1.7; }
   .form-status { color: var(--color-accent); }
+  .form-status[data-state="error"] { color: var(--color-burgundy); }
   .result-keys-list { border-top: 1px solid var(--color-subtle-border); }
   .key-row { border-bottom: 1px solid var(--color-subtle-border); padding: 10px 0; }
   .note-card { border-left: 2px solid var(--color-accent); }

@@ -4,7 +4,11 @@ type SecretStoreBinding = {
 
 export const notConfiguredSecretSentinel = "__ASTROPAGES_NOT_CONFIGURED__";
 export const integrationSecretBundleBinding = "ASTROPAGES_INTEGRATION_SECRETS_JSON";
-export const platformGooglePlacesSecretBinding = "ASTROPAGES_PLATFORM_GOOGLE_PLACES_API_KEY";
+export const platformGooglePlacesSecretBinding =
+  "ASTROPAGES_PLATFORM_GOOGLE_PLACES_GOOGLE_PLACES_API_KEY";
+export const legacyPlatformGooglePlacesSecretBinding =
+  "ASTROPAGES_PLATFORM_GOOGLE_PLACES_API_KEY";
+const legacyGooglePlacesSecretBinding = "GOOGLE_PLACES_API_KEY";
 const secretStoreBindingTimeoutMs = 1500;
 
 const isSecretStoreBinding = (value: unknown): value is SecretStoreBinding =>
@@ -68,13 +72,37 @@ export const resolveSecretBinding = async (
   env: Record<string, unknown>,
   bindingName: string,
 ) => {
-  if (bindingName === "GOOGLE_PLACES_API_KEY") {
-    const platformValue = await resolveRuntimeBinding(env[platformGooglePlacesSecretBinding]);
-    if (platformValue) return platformValue;
+  const isGooglePlacesBinding = [
+    platformGooglePlacesSecretBinding,
+    legacyPlatformGooglePlacesSecretBinding,
+    legacyGooglePlacesSecretBinding,
+  ].includes(bindingName);
+
+  if (isGooglePlacesBinding) {
+    for (const candidate of [
+      platformGooglePlacesSecretBinding,
+      legacyPlatformGooglePlacesSecretBinding,
+    ]) {
+      const platformValue = await resolveRuntimeBinding(env[candidate]);
+      if (platformValue) return platformValue;
+    }
+
+    for (const candidate of new Set([
+      bindingName,
+      platformGooglePlacesSecretBinding,
+      legacyPlatformGooglePlacesSecretBinding,
+      legacyGooglePlacesSecretBinding,
+    ])) {
+      const bundled = await resolveBundledSecretBinding(env, candidate);
+      if (bundled) return bundled;
+    }
+
+    return resolveRuntimeBinding(env[legacyGooglePlacesSecretBinding]);
   }
-  const direct = await resolveRuntimeBinding(env[bindingName]);
-  if (direct) return direct;
-  return resolveBundledSecretBinding(env, bindingName);
+
+  const bundled = await resolveBundledSecretBinding(env, bindingName);
+  if (bundled) return bundled;
+  return resolveRuntimeBinding(env[bindingName]);
 };
 
 export const hasSecretBinding = async (env: Record<string, unknown>, bindingName: string) =>

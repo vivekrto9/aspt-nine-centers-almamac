@@ -78,6 +78,7 @@ const seo = {
     const status = form.querySelector("[data-hd-form-status]");
     if (new URLSearchParams(window.location.search).get("error") === "chart-not-found" && status instanceof HTMLElement) {
       status.hidden = false;
+      status.dataset.state = "error";
       status.textContent = "That saved chart could not be found. Generate a new chart below.";
     }
     form.addEventListener("submit", async (event) => {
@@ -89,6 +90,7 @@ const seo = {
       button.textContent = "Drawing your chart…";
       if (status instanceof HTMLElement) {
         status.hidden = false;
+        status.dataset.state = "loading";
         status.textContent = "Calculating design and personality activations.";
       }
       try {
@@ -114,6 +116,7 @@ const seo = {
         button.textContent = "Generate my chart";
         if (status instanceof HTMLElement) {
           status.hidden = false;
+          status.dataset.state = "error";
           status.textContent = caught instanceof Error ? caught.message : "Your chart could not be generated. Please try again.";
         }
         window.astroPagesTrack?.("free_chart_failed", { source: "chart_page" });

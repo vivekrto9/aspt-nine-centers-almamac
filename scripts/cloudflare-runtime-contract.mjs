@@ -107,7 +107,8 @@ export const runtimeContract = {
 export const integrationSecretBundleBinding = "ASTROPAGES_INTEGRATION_SECRETS_JSON";
 export const integrationSecretBundleSecretProvider = "INTEGRATIONS";
 export const integrationSecretBundleSecretName = "INTEGRATION_SECRETS_JSON";
-export const platformGooglePlacesSecretBinding = "ASTROPAGES_PLATFORM_GOOGLE_PLACES_API_KEY";
+export const platformGooglePlacesSecretBinding =
+  "ASTROPAGES_PLATFORM_GOOGLE_PLACES_GOOGLE_PLACES_API_KEY";
 export const platformGooglePlacesSecretName = "ASTROPAGES_PLATFORM_GOOGLE_PLACES_GOOGLE_PLACES_API_KEY";
 
 const projectIdPattern =

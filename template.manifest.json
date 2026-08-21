@@ -128,7 +128,7 @@
         "ASTROPAGES_SITE_ENVIRONMENT",
         "ASTROPAGES_SSO_PUBLIC_JWK"
       ],
-      "platformGooglePlacesBinding": "ASTROPAGES_PLATFORM_GOOGLE_PLACES_API_KEY"
+      "platformGooglePlacesBinding": "ASTROPAGES_PLATFORM_GOOGLE_PLACES_GOOGLE_PLACES_API_KEY"
     },
     "valuesAllowedInSource": false,
     "generatedSiteRuntimeConfig": [

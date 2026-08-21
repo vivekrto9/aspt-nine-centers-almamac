@@ -37,11 +37,12 @@ test("generated-site place routes proxy autocomplete, details, and timezone look
   const details = read("src/pages/api/astropages/generated-site/places/details.ts");
   const timezone = read("src/pages/api/astropages/generated-site/places/timezone.ts");
   assert.match(autocomplete, /maps\.googleapis\.com\/maps\/api\/place\/autocomplete/);
-  assert.match(autocomplete, /geocoding-api\.open-meteo\.com\/v1\/search/);
-  assert.match(autocomplete, /if \(!apiKey\)/);
+  assert.doesNotMatch(autocomplete, /open-meteo/i);
+  assert.match(autocomplete, /blockedProviderResponse/);
   assert.match(autocomplete, /types: "\(cities\)"/);
   assert.match(details, /maps\.googleapis\.com\/maps\/api\/place\/details/);
   assert.match(details, /mapGooglePlaceDetails/);
-  assert.match(details, /parseOpenMeteoPlace/);
+  assert.doesNotMatch(details, /parseOpenMeteoPlace/);
+  assert.match(details, /blockedProviderResponse/);
   assert.match(timezone, /mapCoordinatesToTimezone/);
 });

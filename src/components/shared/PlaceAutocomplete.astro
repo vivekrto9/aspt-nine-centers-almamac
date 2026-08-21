@@ -93,6 +93,8 @@ const statusId = `${id}-status`;
     let debounceTimer = 0;
     let searchController: AbortController | undefined;
     let detailsController: AbortController | undefined;
+    let searchSequence = 0;
+    let detailsSequence = 0;
 
     const setBusy = (busy: boolean) => {
       if (spinner) spinner.hidden = !busy;
@@ -111,7 +113,7 @@ const statusId = `${id}-status`;
         if (field) field.value = "";
       });
       status.textContent = "";
-      input.setCustomValidity(input.value.trim() ? "Select a city from the suggestions." : "");
+      input.setCustomValidity("");
     };
     const setActive = (index: number) => {
       const options = Array.from(menu.querySelectorAll<HTMLElement>("[role='option']"));
@@ -128,7 +130,7 @@ const statusId = `${id}-status`;
         status.textContent = input.value.trim().length >= 2 ? "No matching cities found." : "";
         return;
       }
-      suggestions.forEach((suggestion, index) => {
+      suggestions.slice(0, 5).forEach((suggestion, index) => {
         const option = document.createElement("button");
         option.type = "button";
         option.id = `${menu.id}-option-${index}`;
@@ -156,13 +158,19 @@ const statusId = `${id}-status`;
       status.textContent = "Confirming city and timezone…";
       setBusy(true);
       detailsController?.abort();
-      detailsController = new AbortController();
+      const controller = new AbortController();
+      detailsController = controller;
+      const sequence = ++detailsSequence;
       const params = new URLSearchParams({ placeId: suggestion.placeId, sessionToken });
       if (dateInput?.value) params.set("date", dateInput.value);
       if (timeInput?.value) params.set("time", timeInput.value);
       try {
-        const response = await fetch(`/api/astropages/generated-site/places/details?${params}`, { signal: detailsController.signal });
-        const payload = await response.json();
+        const response = await fetch(`/api/astropages/generated-site/places/details?${params}`, {
+          signal: controller.signal,
+          headers: { accept: "application/json" },
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (sequence !== detailsSequence || controller.signal.aborted) return;
         const place = payload?.data?.place;
         if (!response.ok || payload?.status !== "ready" || !place) throw new Error(payload?.message || "Place details could not be loaded.");
         input.value = String(place.formattedAddress || suggestion.description);
@@ -178,13 +186,15 @@ const statusId = `${id}-status`;
         input.setCustomValidity("");
         status.textContent = `${place.timezone}${place.offset ? ` · ${place.offset}` : ""}`;
         sessionToken = makeSessionToken();
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        root.dispatchEvent(new CustomEvent("sidera:location-select", { bubbles: true, detail: place }));
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (controller.signal.aborted) return;
         clearSelection();
         input.setCustomValidity("Select the city again so its timezone can be confirmed.");
         status.textContent = error instanceof Error ? error.message : "Place details could not be loaded.";
       } finally {
-        setBusy(false);
+        if (sequence === detailsSequence) setBusy(false);
       }
     };
 
@@ -193,35 +203,58 @@ const statusId = `${id}-status`;
       if (query.length < 2) {
         suggestions = [];
         closeMenu();
+        setBusy(false);
         status.textContent = query ? "Type at least 2 characters." : "";
         return;
       }
       searchController?.abort();
-      searchController = new AbortController();
+      detailsController?.abort();
+      detailsSequence += 1;
+      const controller = new AbortController();
+      searchController = controller;
+      const requestedQuery = query;
+      const sequence = ++searchSequence;
       setBusy(true);
       try {
         const params = new URLSearchParams({ input: query, sessionToken, language: document.documentElement.lang || "en" });
-        const response = await fetch(`/api/astropages/generated-site/places/autocomplete?${params}`, { signal: searchController.signal });
-        const payload = await response.json();
+        const response = await fetch(`/api/astropages/generated-site/places/autocomplete?${params}`, {
+          signal: controller.signal,
+          headers: { accept: "application/json" },
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (sequence !== searchSequence || controller.signal.aborted || input.value.trim() !== requestedQuery) return;
         if (!response.ok || payload?.status !== "ready") throw new Error(payload?.message || "Place suggestions could not be loaded.");
-        suggestions = Array.isArray(payload?.data?.predictions) ? payload.data.predictions : [];
+        suggestions = Array.isArray(payload?.data?.predictions)
+          ? payload.data.predictions
+            .filter((prediction: { placeId?: string; description?: string }) => prediction?.placeId && prediction?.description)
+            .slice(0, 5)
+          : [];
         renderSuggestions();
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (controller.signal.aborted) return;
         suggestions = [];
         closeMenu();
         status.textContent = error instanceof Error ? error.message : "Place suggestions could not be loaded.";
       } finally {
-        setBusy(false);
+        if (sequence === searchSequence) setBusy(false);
       }
     };
 
     input.addEventListener("input", () => {
+      searchController?.abort();
+      detailsController?.abort();
+      searchSequence += 1;
+      detailsSequence += 1;
       clearSelection();
       window.clearTimeout(debounceTimer);
       debounceTimer = window.setTimeout(search, 260);
     });
-    input.addEventListener("focus", () => { if (suggestions.length && input.value.trim().length >= 2) renderSuggestions(); });
+    input.addEventListener("focus", () => {
+      if (!selectedPlaceId && input.value.trim().length >= 2) {
+        window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(search, 0);
+      }
+    });
     input.addEventListener("keydown", (event) => {
       if (menu.hidden && (event.key === "ArrowDown" || event.key === "ArrowUp") && suggestions.length) renderSuggestions();
       if (event.key === "ArrowDown") { event.preventDefault(); setActive(activeIndex + 1); }
@@ -229,7 +262,8 @@ const statusId = `${id}-status`;
       else if (event.key === "Home" && !menu.hidden) { event.preventDefault(); setActive(0); }
       else if (event.key === "End" && !menu.hidden) { event.preventDefault(); setActive(suggestions.length - 1); }
       else if (event.key === "Enter" && !menu.hidden && activeIndex >= 0) { event.preventDefault(); selectSuggestion(suggestions[activeIndex]); }
-      else if (event.key === "Escape") closeMenu();
+      else if (event.key === "Escape") { searchController?.abort(); closeMenu(); }
+      else if (event.key === "Tab") closeMenu();
     });
     document.addEventListener("pointerdown", (event) => { if (!root.contains(event.target as Node)) closeMenu(); });
     form?.addEventListener("reset", () => window.setTimeout(() => { suggestions = []; clearSelection(); closeMenu(); }, 0));
