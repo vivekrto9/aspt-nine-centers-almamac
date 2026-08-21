@@ -328,7 +328,15 @@ const { eyebrow = "The five types", title = "Everybody is one of five", hint = "
   .type-row-wrapper { display: contents; margin: 0 !important; border: 0; }
   .type-trigger { grid-column: 1; min-height: 56px; background: transparent; color: var(--color-ink); border: 0; border-bottom: 1px solid var(--color-subtle-border); padding: 16px 4px; }
   .type-row-wrapper:first-child .type-trigger { border-top: 1px solid var(--color-ink); }
-  .type-trigger:hover { background: var(--color-ink); color: var(--color-paper); }
+  .type-trigger:hover,
+  .type-trigger:focus-visible { background: var(--color-ink); color: var(--color-paper); }
+  .type-trigger:hover .type-title,
+  .type-trigger:focus-visible .type-title { color: var(--color-paper); }
+  .type-trigger:hover .type-num,
+  .type-trigger:focus-visible .type-num { color: #D8DEEC; }
+  .type-trigger:hover .type-share,
+  .type-trigger:focus-visible .type-share { color: #FFFFFF; }
+  .type-trigger:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
   .type-num, .type-share, .open-share, .spec-label { font-family: var(--font-mono); font-weight: 400; }
   .type-title { font-family: var(--font-display); font-size: 21px; font-weight: 400; letter-spacing: 0; }
   .type-card-open { grid-column: 2; grid-row: 1 / span 5; background: var(--color-paper); color: var(--color-ink); border: 1px solid var(--color-ink); box-shadow: none; padding: 34px 32px; }

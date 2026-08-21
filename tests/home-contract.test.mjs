@@ -38,6 +38,8 @@ test("Five Types section contains all five human design energy types", () => {
   for (const name of ["Manifestor", "Generator", "Manifesting Generator", "Projector", "Reflector"]) {
     assert.equal(typesAstro.includes("TYPES.map"), true);
   }
+  assert.match(typesAstro, /\.type-trigger:hover \.type-title,[\s\S]*?color:\s*var\(--color-paper\)/);
+  assert.match(typesAstro, /\.type-trigger:focus-visible \.type-share[\s\S]*?color:\s*#FFFFFF/);
 });
 
 test("Readings section provides one $99 offer and hands payment to Stripe Checkout", () => {
