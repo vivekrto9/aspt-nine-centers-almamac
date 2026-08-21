@@ -8,6 +8,7 @@ interface Props {
 
 const { article } = Astro.props;
 const locale = getLocaleFromUrl(Astro.request.url);
+const chartFormHref = `${localizePath("/", locale)}#chart`;
 ---
 
 <div class="article-body" data-article-body>
@@ -48,7 +49,7 @@ const locale = getLocaleFromUrl(Astro.request.url);
       <h3 class="cta-card-title">Explore your own chart mechanics</h3>
       <p class="cta-card-text">Calculate your complete Human Design bodygraph with planetary activations, definition, and authority.</p>
     </div>
-    <a href={localizePath("/human-design", locale)} class="cta-card-btn">Generate free chart &rarr;</a>
+    <a href={chartFormHref} class="cta-card-btn">Generate free chart &rarr;</a>
   </div>
 </div>
 

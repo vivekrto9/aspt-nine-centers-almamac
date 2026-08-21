@@ -114,6 +114,10 @@ test("Blog index and dynamic slug detail pages exist and render structured artic
   assert.equal(blogDetail.includes("<BlogArticleHeader"), true);
   assert.equal(blogDetail.includes("<BlogArticleBody"), true);
   assert.equal(blogBody.includes("takeaways-box"), true);
+  assert.equal(blogBody.includes('const chartFormHref = `${localizePath("/", locale)}#chart`;'), true);
+  assert.equal(blogBody.includes('localizePath("/human-design", locale)'), false);
+  assert.equal(blogIndex.includes('chartHref={`${homeHref}#chart`}'), true);
+  assert.equal(blogDetail.includes('chartHref={`${homeHref}#chart`}'), true);
   assert.equal(blogData.includes("open-centres-not-weaknesses"), true);
   assert.equal(blogData.includes("how-to-test-your-gut-yes"), true);
 });
