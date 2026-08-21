@@ -97,6 +97,9 @@ test("Articles section provides View All CTA and links to blog routes", () => {
   assert.equal(articlesAstro.includes('localizePath("/blog", locale)'), true);
   assert.equal(articlesAstro.includes("view-all-cta"), true);
   assert.equal(articlesAstro.includes("localizePath(`/blog/${a.slug}`, locale)"), true);
+  assert.match(articlesAstro, /\.article-title::after\s*\{[^}]*content:\s*"↗"/s);
+  assert.match(articlesAstro, /box-shadow:\s*inset 0 0 0 3px var\(--color-cobalt\)/);
+  assert.match(articlesAstro, /\.article-card:hover,[\s\S]*\.article-card:focus-visible\s*\{[^}]*box-shadow:\s*none/);
 });
 
 test("Blog index and dynamic slug detail pages exist and render structured articles", () => {
