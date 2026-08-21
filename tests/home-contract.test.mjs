@@ -84,6 +84,11 @@ test("sample plate gives recovered centre width equally to the bodygraph and act
   assert.match(plate, /\.centres-col, \.canvas-plate-col, \.activations-col\s*\{\s*grid-column:\s*1;/);
 });
 
+test("four vocabulary concepts share one horizontal start line", () => {
+  const concepts = read("src/components/home/sections/FourConceptsSection.astro");
+  assert.match(concepts, /\.concept-card\s*\{[^}]*margin-top:\s*0;/s);
+});
+
 test("Articles section provides View All CTA and links to blog routes", () => {
   const articlesAstro = read("src/components/home/sections/ArticlesSection.astro");
   assert.equal(articlesAstro.includes('localizePath("/blog", locale)'), true);
