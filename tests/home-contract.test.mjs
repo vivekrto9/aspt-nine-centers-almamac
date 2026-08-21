@@ -72,6 +72,18 @@ test("Bodygraph Canvas SVG geometry is present and rendered", () => {
   assert.equal(canvasAstro.includes("bg-center-shapes"), true);
 });
 
+test("sample plate gives recovered centre width equally to the bodygraph and activations", () => {
+  const plate = read("src/components/home/sections/NineCentresSection.astro");
+  assert.match(
+    plate,
+    /grid-template-columns:\s*minmax\(0, 0\.7fr\)\s+minmax\(0, 1\.15fr\)\s+minmax\(0, 1\.15fr\)/,
+  );
+  assert.match(plate, /\.centres-col\s*\{\s*grid-column:\s*1;/);
+  assert.match(plate, /\.canvas-plate-col\s*\{\s*grid-column:\s*2;/);
+  assert.match(plate, /\.activations-col\s*\{\s*grid-column:\s*3;/);
+  assert.match(plate, /\.centres-col, \.canvas-plate-col, \.activations-col\s*\{\s*grid-column:\s*1;/);
+});
+
 test("Articles section provides View All CTA and links to blog routes", () => {
   const articlesAstro = read("src/components/home/sections/ArticlesSection.astro");
   assert.equal(articlesAstro.includes('localizePath("/blog", locale)'), true);

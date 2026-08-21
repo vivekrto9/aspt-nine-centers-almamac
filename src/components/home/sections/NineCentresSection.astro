@@ -290,7 +290,10 @@ const staticChartData = {
   .section-title-wrap { display: contents; }
   .section-eyebrow { order: 1; color: #5A6480; font-family: var(--font-mono); font-size: 11px; font-weight: 400; letter-spacing: 0.2em; margin: 0; text-transform: uppercase; }
   .section-heading { display: none; }
-  .diagram-grid { display: grid; grid-template-columns: 1fr minmax(260px, 380px) 1fr; gap: 34px; align-items: start; }
+  .diagram-grid { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.15fr) minmax(0, 1.15fr); gap: 34px; align-items: start; }
+  .centres-col { grid-column: 1; }
+  .canvas-plate-col { grid-column: 2; }
+  .activations-col { grid-column: 3; }
   .centres-col, .activations-col { border-top: 1px solid var(--color-ink); }
   .legend-row { position: absolute; right: max(26px, calc((100vw - 1200px) / 2)); transform: translateY(-58px); display: flex; gap: 16px; }
   .legend-item, .centre-state, .col-head, .activation-val { font-family: var(--font-mono); font-weight: 400; }
@@ -319,6 +322,6 @@ const staticChartData = {
     .section-header-grid { align-items: flex-start; }
     .legend-row { position: static; transform: none; margin-bottom: 18px; }
     .diagram-grid { grid-template-columns: 1fr; }
-    .activations-col { grid-column: auto; }
+    .centres-col, .canvas-plate-col, .activations-col { grid-column: 1; }
   }
 </style>
