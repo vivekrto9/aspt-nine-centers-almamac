@@ -54,6 +54,7 @@ test("Readings section provides one $99 offer and hands payment to Stripe Checko
   assert.equal(readings.includes("You already own this reading"), true);
   assert.equal(readings.includes("/api/checkout/reading-access?reading_id="), true);
   assert.equal(readings.includes("View my full reading →"), true);
+  assert.match(readings, /\.offer-price\s*\{\s*font-size:\s*clamp\(96px, 10vw, 152px\)/);
   assert.equal(readings.includes("card number"), false);
   assert.equal(checkout.includes("https://api.stripe.com/v1/checkout/sessions"), true);
   assert.equal(checkout.includes('form.set("line_items[0][price_data][unit_amount]", "9900")'), true);

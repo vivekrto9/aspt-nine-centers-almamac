@@ -361,7 +361,7 @@ const {
   .offer-copy h3, .offer-price, .checkout-summary h2, .purchase-owned-body h2 { font-family: var(--font-display); font-weight: 500; letter-spacing: 0; }
   .offer-description, .offer-list { color: var(--color-text-dark); }
   .offer-purchase { min-height: 0; background: #E7EAF1; border-left: 1px solid var(--color-ink); padding: 34px 32px; }
-  .offer-price { font-size: 42px; }
+  .offer-price { font-size: clamp(96px, 10vw, 152px); line-height: 0.82; letter-spacing: -0.055em; }
   .offer-cta, .checkout-submit { background: var(--color-ink); color: var(--color-paper); border: 1px solid var(--color-ink); font-family: var(--font-mono); letter-spacing: 0.12em; }
   .offer-cta:hover, .checkout-submit:hover { background: var(--color-cobalt); border-color: var(--color-cobalt); color: #fff; }
   .readings-footer-note { color: #5A6480; letter-spacing: 0.14em; }
