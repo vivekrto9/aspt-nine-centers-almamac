@@ -160,7 +160,8 @@ const energyDetails = [
     title: provider.title || item.title,
     paragraphs: provider.paragraphs.length ? provider.paragraphs : [provider.content].filter(Boolean),
     sections: visibleSections,
-  } : { ...item, sections: [] as ReadingSection[] };
+    hasLockedContent: !unlocked && providerSections.length > visibleSections.length,
+  } : { ...item, sections: [] as ReadingSection[], hasLockedContent: false };
 });
 ---
 
@@ -234,7 +235,7 @@ const energyDetails = [
                 {section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
               </section>
             )) : item.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
-            {!unlocked && <UnlockReadingCard upgradeHref={upgradeHref} />}
+            {item.hasLockedContent && <UnlockReadingCard upgradeHref={upgradeHref} />}
           </article>
         ))}
       </div>

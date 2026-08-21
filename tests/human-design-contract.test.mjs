@@ -79,8 +79,10 @@ test("bodygraph result page exposes the Field Almanac explorer workspace and int
   assert.match(propertiesDrawer, /data-property-back/);
   assert.match(propertiesDrawer, /data-property-previous/);
   assert.match(propertiesDrawer, /data-property-next/);
-  assert.match(propertiesDrawer, /<UnlockReadingCard upgradeHref={upgradeHref}/);
-  assert.match(propertiesDrawer, /!unlocked && <UnlockReadingCard/);
+  assert.match(propertiesDrawer, /data-property-locked={String\(detailContent\(/);
+  assert.match(propertiesDrawer, /!unlocked && <div data-property-unlock hidden><UnlockReadingCard upgradeHref={upgradeHref}/);
+  assert.match(propertiesDrawer, /if \(unlock\) unlock\.hidden = card\.dataset\.propertyLocked !== "true"/);
+  assert.match(propertiesDrawer, /copy: \(unlocked \? complete : complete\.slice\(0, 1\)\)\.join\("\\n\\n"\)/);
   assert.match(
     result,
     /<BodyGraphGuidePanel properties={foundationalProperties} chart={chartView} unlocked={hasFullReadingAccess} upgradeHref=/,
@@ -98,8 +100,8 @@ test("bodygraph result page exposes the Field Almanac explorer workspace and int
   assert.match(guide, /aria-hidden="true">→<\/i>/);
   assert.match(guide, /manifesting-generator/);
   assert.match(guide, /energyImageKey\[energyType\.toLowerCase\(\)\]/);
-  assert.match(guide, /<UnlockReadingCard upgradeHref={upgradeHref}/);
-  assert.match(guide, /!unlocked && <UnlockReadingCard/);
+  assert.match(guide, /hasLockedContent: !unlocked && providerSections\.length > visibleSections\.length/);
+  assert.match(guide, /item\.hasLockedContent && <UnlockReadingCard upgradeHref={upgradeHref}/);
   const unlockCard = read("src/components/bodygraph/UnlockReadingCard.astro");
   assert.match(unlockCard, /Unlock the Full Detailed Reading/);
   assert.match(unlockCard, /Upgrade Now/);

@@ -24,8 +24,14 @@ const {
   unlocked = false,
   upgradeHref = "/#readings",
 } = Astro.props;
-const detailCopy = (description: string, detailParagraphs: string[] = []) =>
-  unlocked ? description : detailParagraphs[0] || description;
+const detailContent = (description: string, detailParagraphs: string[] = []) => {
+  const paragraphs = detailParagraphs.map((paragraph) => paragraph.trim()).filter(Boolean);
+  const complete = paragraphs.length ? paragraphs : [description.trim()].filter(Boolean);
+  return {
+    copy: (unlocked ? complete : complete.slice(0, 1)).join("\n\n"),
+    locked: !unlocked && complete.length > 1,
+  };
+};
 const definedCenterSet = new Set(definedCenters.map((value: string) => value.toLowerCase()));
 const centreShapes: Record<string, string> = {
   head: "triangle", ajna: "triangle-down", throat: "square", g: "diamond", ego: "triangle",
@@ -103,7 +109,7 @@ const gates = activeGates.map((gate) => {
       <label class="hd-properties-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search Centres" data-property-search /></label>
       <div class="hd-properties-list" data-property-list>
         {centres.map((centre) => (
-          <button class="hd-property-card" type="button" data-property-card data-property-state={centre.state} data-property-name={centre.name} data-property-kicker={`${centre.state} centre`} data-property-description={detailCopy(centre.description, centre.paragraphs)} hidden={centre.state !== "Defined"}>
+          <button class="hd-property-card" type="button" data-property-card data-property-state={centre.state} data-property-name={centre.name} data-property-kicker={`${centre.state} centre`} data-property-description={detailContent(centre.description, centre.paragraphs).copy} data-property-locked={String(detailContent(centre.description, centre.paragraphs).locked)} hidden={centre.state !== "Defined"}>
             <span class="hd-property-card-icon" aria-hidden="true">
               {centre.shape.includes("triangle") ? (
                 <svg class={`hd-centre-icon hd-centre-icon--${centre.shape}`} viewBox="0 0 36 36"><path d="M18 5 31 29H5Z"/></svg>
@@ -122,7 +128,7 @@ const gates = activeGates.map((gate) => {
       <label class="hd-properties-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search Gates" data-property-search /></label>
       <div class="hd-properties-list" data-property-list>
         {gates.map((gate) => (
-          <button class="hd-property-card" type="button" data-property-card data-property-name={gate.name} data-property-kicker="Active gate" data-property-description={detailCopy(gate.description, gateDetails.find((item) => item.id === Number(gate.id))?.paragraphs)}>
+          <button class="hd-property-card" type="button" data-property-card data-property-name={gate.name} data-property-kicker="Active gate" data-property-description={detailContent(gate.description, gateDetails.find((item) => item.id === Number(gate.id))?.paragraphs).copy} data-property-locked={String(detailContent(gate.description, gateDetails.find((item) => item.id === Number(gate.id))?.paragraphs).locked)}>
             <span class="hd-property-card-icon hd-property-card-icon--gate" aria-hidden="true">
               <svg viewBox="0 0 42 42"><path d="M8 6h22l5 7-4 23H9L5 14Z"/><text x="20" y="25">{gate.id}</text></svg>
             </span>
@@ -137,7 +143,7 @@ const gates = activeGates.map((gate) => {
       <label class="hd-properties-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search Channels" data-property-search /></label>
       <div class="hd-properties-list" data-property-list>
         {channels.map((channel) => (
-          <button class="hd-property-card" type="button" data-property-card data-property-name={`${channel.name} · ${channel.label}`} data-property-kicker="Active channel" data-property-description={detailCopy(channel.description, channel.paragraphs)}>
+          <button class="hd-property-card" type="button" data-property-card data-property-name={`${channel.name} · ${channel.label}`} data-property-kicker="Active channel" data-property-description={detailContent(channel.description, channel.paragraphs).copy} data-property-locked={String(detailContent(channel.description, channel.paragraphs).locked)}>
             <span class="hd-property-card-icon hd-property-card-icon--channel" aria-hidden="true">
               <svg viewBox="0 0 42 42"><path d="M13 29 29 13"/><circle cx="11" cy="31" r="6"/><circle cx="31" cy="11" r="6"/></svg>
             </span>
@@ -159,7 +165,7 @@ const gates = activeGates.map((gate) => {
         <button type="button" data-property-previous>← <span>Previous</span></button>
         <button type="button" data-property-next><span>Next</span> →</button>
       </div>
-      {!unlocked && <UnlockReadingCard upgradeHref={upgradeHref} />}
+      {!unlocked && <div data-property-unlock hidden><UnlockReadingCard upgradeHref={upgradeHref} /></div>}
     </article>
   </div>
 </aside>
@@ -215,9 +221,11 @@ const gates = activeGates.map((gate) => {
     const title = detail.querySelector<HTMLElement>("[data-property-detail-title]");
     const kicker = detail.querySelector<HTMLElement>("[data-property-detail-kicker]");
     const copy = detail.querySelector<HTMLElement>("[data-property-detail-copy]");
+    const unlock = detail.querySelector<HTMLElement>("[data-property-unlock]");
     if (title) title.textContent = card.dataset.propertyName || "Chart property";
     if (kicker) kicker.textContent = card.dataset.propertyKicker || "Chart property";
     if (copy) copy.textContent = card.dataset.propertyDescription || "This property is active in your chart.";
+    if (unlock) unlock.hidden = card.dataset.propertyLocked !== "true";
     window.astroPagesTrack?.("chart_property_viewed", {
       category: card.dataset.propertyKicker || "chart_property",
       property: card.dataset.propertyName || "unknown",
