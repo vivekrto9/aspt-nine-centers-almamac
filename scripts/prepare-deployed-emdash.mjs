@@ -86,6 +86,99 @@ async function warmEmDashRuntime() {
 async function repairKnownEmDashMigrationState() {
   await repairRemovedSectionCategoriesMigration();
   await repairPluginMetadataMigration();
+  await repairLegacyTemplateContentColumns();
+}
+
+async function repairLegacyTemplateContentColumns() {
+  // Existing preview databases can predate fields in the current builder
+  // registry. Reconcile only missing content columns before bootstrap.
+  const legacyTemplateContentColumns = {
+    ec_site_pages: [
+      "title",
+      "hero_kicker",
+      "hero_title",
+      "hero_body",
+      "hero_subtext",
+      "hero_side_note",
+      "generator_title",
+      "generator_body",
+      "nine_centres_eyebrow",
+      "nine_centres_title",
+      "concepts_eyebrow",
+      "concepts_title",
+      "types_eyebrow",
+      "types_title",
+      "types_hint",
+      "readings_eyebrow",
+      "readings_title",
+      "readings_note",
+      "how_eyebrow",
+      "how_title",
+      "letters_eyebrow",
+      "faq_eyebrow",
+      "faq_title",
+      "articles_eyebrow",
+      "articles_title",
+      "articles_view_all",
+      "final_cta_title",
+      "final_cta_button",
+      "hero_primary_cta",
+      "hero_secondary_cta",
+      "feature_1_title",
+      "feature_1_body",
+      "feature_2_title",
+      "feature_2_body",
+      "feature_3_title",
+      "feature_3_body",
+      "footer_note",
+      "not_found_title",
+      "not_found_body",
+      "not_found_cta",
+      "seo_title",
+      "seo_description",
+      "seo_canonical_path",
+      "seo_robots",
+      "og_title",
+      "og_description",
+      "og_image",
+      "og_image_alt",
+      "twitter_card",
+      "twitter_title",
+      "twitter_description",
+      "twitter_image",
+    ],
+    ec_site_chrome: [
+      "title",
+      "brand_name",
+      "nav_home",
+      "footer_brand_name",
+      "footer_about",
+    ],
+  };
+
+  for (const [tableName, columns] of Object.entries(legacyTemplateContentColumns)) {
+    await addMissingColumns(
+      tableName,
+      Object.fromEntries(columns.map((column) => [column, "TEXT"])),
+    );
+  }
+}
+
+async function addMissingColumns(tableName, definitions) {
+  if (!(await tableExists(tableName))) return;
+
+  const existingColumns = new Set(
+    (await d1Query(`PRAGMA table_info(${quoteIdentifier(tableName)});`))
+      .map((column) => column.name),
+  );
+  for (const [columnName, definition] of Object.entries(definitions)) {
+    if (existingColumns.has(columnName)) continue;
+    console.log(`Repairing legacy template schema: adding ${tableName}.${columnName}`);
+    await d1Query(
+      `ALTER TABLE ${quoteIdentifier(tableName)} ADD COLUMN ${quoteIdentifier(columnName)} ${definition};`,
+    );
+    existingColumns.add(columnName);
+  }
 }
 
 async function repairRemovedSectionCategoriesMigration() {
@@ -291,7 +384,10 @@ async function postBootstrapBatch({ serviceToken, cursor, limit }) {
       fail(`AstroPages builder content bootstrap failed: ${payload.code ?? payload.error ?? response.status}`);
     }
 
-    console.log(`AstroPages builder content bootstrap returned ${response.status}; retrying...`);
+    const responseMessage = typeof payload.message === "string" ? payload.message.trim() : "";
+    console.log(
+      `AstroPages builder content bootstrap returned ${response.status}${responseMessage ? ` (${responseMessage})` : ""}; retrying...`,
+    );
     await sleep(5_000);
   }
 
