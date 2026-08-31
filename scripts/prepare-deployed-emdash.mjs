@@ -1,3 +1,5 @@
+import { resolveBootstrapServiceToken } from "./emdash-bootstrap-auth.mjs";
+
 const envName = process.argv[2];
 if (!["preview", "production"].includes(envName)) {
   fail("Usage: node scripts/prepare-deployed-emdash.mjs <preview|production>");
@@ -331,16 +333,7 @@ async function readEditReadiness() {
 }
 
 function bootstrapServiceToken() {
-  const token =
-    process.env.ASTROPAGES_CONTROL_PLANE_CALLBACK_TOKEN ||
-    process.env.SERVICE_CALLBACK_BEARER_TOKEN ||
-    process.env.BUILDER_MCP_PROVISION_SECRET;
-  if (!token) {
-    fail(
-      "AstroPages builder content bootstrap requires ASTROPAGES_CONTROL_PLANE_CALLBACK_TOKEN, SERVICE_CALLBACK_BEARER_TOKEN, or BUILDER_MCP_PROVISION_SECRET.",
-    );
-  }
-  return token;
+  return resolveBootstrapServiceToken(process.env);
 }
 
 async function postBootstrapBatch({ serviceToken, cursor, limit }) {

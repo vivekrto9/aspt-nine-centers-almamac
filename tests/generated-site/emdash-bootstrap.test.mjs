@@ -290,9 +290,8 @@ test("deployed EmDash preparation bootstraps content through the bounded generat
   assert.match(source, /\/api\/astropages\/generated-site\/edit-readiness/);
   assert.match(source, /Bootstrap already current; skipping full builder content bootstrap/);
   assert.doesNotMatch(source, /requiredEnv\("BUILDER_MCP_PROVISION_SECRET"\)/);
-  assert.match(source, /ASTROPAGES_CONTROL_PLANE_CALLBACK_TOKEN/);
-  assert.match(source, /SERVICE_CALLBACK_BEARER_TOKEN/);
-  assert.match(source, /BUILDER_MCP_PROVISION_SECRET/);
+  assert.match(source, /import \{ resolveBootstrapServiceToken \} from "\.\/emdash-bootstrap-auth\.mjs"/);
+  assert.match(source, /resolveBootstrapServiceToken\(process\.env\)/);
   assert.match(source, /body\.status !== "ready"/);
   assert.match(source, /mode: "full"/);
   assert.match(source, /cursor/);
