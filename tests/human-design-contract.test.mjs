@@ -182,12 +182,15 @@ test("all 64 bodygraph gates terminate at the correct channel anchors", async ()
   assert.match(canvas, /data-channel-attachment/);
 });
 
-test("Human Design readings have a durable D1 table and declared secrets", () => {
+test("Human Design readings keep durable storage and catalog-managed secrets out of the custom manifest", () => {
   const migration = read("migrations/0008_human_design_readings.sql");
   const secrets = JSON.parse(read("astropages/secrets.manifest.json"));
   assert.match(migration, /CREATE TABLE IF NOT EXISTS ap_human_design_readings/);
   const secretKeys = secrets.integrations.flatMap((integration) => integration.secrets.map((secret) => secret.key));
-  assert.deepEqual(secretKeys, ["ASTROLOGYAPI_USER_ID", "ASTROLOGYAPI_PASSWORD", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]);
+  for (const key of ["ASTROLOGYAPI_USER_ID", "ASTROLOGYAPI_PASSWORD", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]) {
+    assert.ok(!secretKeys.includes(key), `${key} is managed by the integration catalog`);
+    assert.ok(read("scripts/validate-secrets-contract.mjs").includes(`"${key}"`), `${key} remains a supported built-in secret`);
+  }
 });
 
 test("proprietary masterclass implementation is not mounted or imported", () => {

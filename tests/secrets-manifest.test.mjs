@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
+import { assertProjectSecretRequirement } from "../scripts/project-secret-requirement-contract.mjs";
 
 const builtInSecretKeys = new Set([
   "RAZORPAY_KEY_SECRET",
@@ -22,6 +23,8 @@ const builtInSecretKeys = new Set([
   "WATI_API_TOKEN",
   "MAILCHIMP_API_KEY",
   "X_ASTROLOGYAPI_KEY",
+  "ASTROLOGYAPI_USER_ID",
+  "ASTROLOGYAPI_PASSWORD",
   "GOOGLE_PLACES_API_KEY",
   "ASTROPAGES_PLATFORM_GOOGLE_PLACES_GOOGLE_PLACES_API_KEY",
 ]);
@@ -50,6 +53,7 @@ test("secret manifest contains requirements only and declares non-catalog lookup
     assert.equal(typeof integration.name, "string");
     assert.ok(Array.isArray(integration.secrets));
     for (const secret of integration.secrets) {
+      assertProjectSecretRequirement(secret, builtInSecretKeys);
       assert.deepEqual(
         Object.keys(secret).sort(),
         Object.keys(secret)
@@ -80,5 +84,32 @@ test("secret manifest contains requirements only and declares non-catalog lookup
         `${path.relative(process.cwd(), file)} uses undeclared secret ${match[1]}`,
       );
     }
+  }
+});
+
+test("project secret requirements reject catalog-managed provider keys", () => {
+  for (const key of ["CALENDLY_API_TOKEN", "CALENDLY_WEBHOOK_SIGNING_KEY", "ASTROLOGYAPI_USER_ID", "ASTROLOGYAPI_PASSWORD", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]) {
+    assert.throws(
+      () => assertProjectSecretRequirement(
+        { key, environments: ["preview", "production"] }, builtInSecretKeys,
+      ),
+      /managed by the integration catalog/,
+    );
+  }
+});
+
+test("custom secret requirements only accept unique deployment environments", () => {
+  for (const environments of [undefined, [], ["local"], ["local", "preview", "production"], ["preview", "preview"]]) {
+    assert.throws(
+      () => assertProjectSecretRequirement(
+        { key: "CUSTOM_PROVIDER_TOKEN", environments }, builtInSecretKeys,
+      ),
+      /unique preview\/production values/,
+    );
+  }
+  for (const environments of [["preview"], ["production"], ["preview", "production"]]) {
+    assert.doesNotThrow(() => assertProjectSecretRequirement(
+      { key: "CUSTOM_PROVIDER_TOKEN", environments }, builtInSecretKeys,
+    ));
   }
 });
