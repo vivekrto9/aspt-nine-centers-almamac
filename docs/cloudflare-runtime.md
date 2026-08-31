@@ -1,5 +1,14 @@
 # Cloudflare Runtime Contract
 
+## Template Resource Isolation
+
+Template-source deployments use the repository's `templateKey` as the resource prefix.
+Preview and production each have their own Worker, D1 database, R2 bucket, and KV
+namespace, declared consistently in `wrangler.jsonc`, the runtime contract, and
+`template.manifest.json`. Never point these variants at shared base-template resources.
+Existing shared resources are left intact; the next preview deployment provisions
+fresh isolated resources and bootstraps this template's content and asset seeds.
+
 The base template supports two repository modes.
 
 ## Template Source Mode

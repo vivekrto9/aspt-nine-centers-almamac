@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "astropages-base-template",
+  "name": "aspt-nine-centers-almamac",
   "main": "./src/worker.ts",
   "compatibility_date": "2026-02-24",
   "compatibility_flags": ["nodejs_compat"],
@@ -12,19 +12,19 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "astropages-base-template-site",
+      "database_name": "aspt-nine-centers-almamac-site",
     },
   ],
   "r2_buckets": [
     {
       "binding": "MEDIA",
-      "bucket_name": "astropages-base-template-media",
+      "bucket_name": "aspt-nine-centers-almamac-media",
     },
   ],
   "kv_namespaces": [
     {
       "binding": "SESSION",
-      "id": "LOCAL_ASTROPAGES_BASE_TEMPLATE_SESSION_KV",
+      "id": "LOCAL_ASPT_NINE_CENTERS_ALMAMAC_SESSION_KV",
     },
   ],
   "images": {
@@ -37,7 +37,7 @@
   ],
   "env": {
     "preview": {
-      "name": "astropages-base-template-preview",
+      "name": "aspt-nine-centers-almamac-preview",
       "assets": {
         "directory": "./dist/client",
         "binding": "ASSETS",
@@ -46,14 +46,14 @@
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "astropages-base-template-preview-site",
+          "database_name": "aspt-nine-centers-almamac-preview-site",
           "database_id": "PREVIEW_D1_DATABASE_ID_FROM_WRANGLER_CREATE",
         },
       ],
       "r2_buckets": [
         {
           "binding": "MEDIA",
-          "bucket_name": "astropages-base-template-preview-media",
+          "bucket_name": "aspt-nine-centers-almamac-preview-media",
         },
       ],
       "kv_namespaces": [
@@ -85,7 +85,7 @@
       ],
     },
     "production": {
-      "name": "astropages-base-template-production",
+      "name": "aspt-nine-centers-almamac-production",
       "assets": {
         "directory": "./dist/client",
         "binding": "ASSETS",
@@ -94,14 +94,14 @@
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "astropages-base-template-production-site",
+          "database_name": "aspt-nine-centers-almamac-production-site",
           "database_id": "PRODUCTION_D1_DATABASE_ID_FROM_WRANGLER_CREATE",
         },
       ],
       "r2_buckets": [
         {
           "binding": "MEDIA",
-          "bucket_name": "astropages-base-template-production-media",
+          "bucket_name": "aspt-nine-centers-almamac-production-media",
         },
       ],
       "kv_namespaces": [

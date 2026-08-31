@@ -32,20 +32,20 @@
     "environments": [
       {
         "name": "preview",
-        "workerName": "astropages-base-template-preview",
-        "d1DatabaseName": "astropages-base-template-preview-site",
-        "r2BucketName": "astropages-base-template-preview-media",
-        "kvNamespaceName": "astropages-base-template-preview-session",
+        "workerName": "aspt-nine-centers-almamac-preview",
+        "d1DatabaseName": "aspt-nine-centers-almamac-preview-site",
+        "r2BucketName": "aspt-nine-centers-almamac-preview-media",
+        "kvNamespaceName": "aspt-nine-centers-almamac-preview-session",
         "siteUrlVariable": "PREVIEW_SITE_URL",
         "d1DatabaseIdVariable": "PREVIEW_SITE_D1_DATABASE_ID",
         "sessionKvNamespaceIdVariable": "PREVIEW_SITE_SESSION_KV_NAMESPACE_ID"
       },
       {
         "name": "production",
-        "workerName": "astropages-base-template-production",
-        "d1DatabaseName": "astropages-base-template-production-site",
-        "r2BucketName": "astropages-base-template-production-media",
-        "kvNamespaceName": "astropages-base-template-production-session",
+        "workerName": "aspt-nine-centers-almamac-production",
+        "d1DatabaseName": "aspt-nine-centers-almamac-production-site",
+        "r2BucketName": "aspt-nine-centers-almamac-production-media",
+        "kvNamespaceName": "aspt-nine-centers-almamac-production-session",
         "siteUrlVariable": "PRODUCTION_SITE_URL",
         "d1DatabaseIdVariable": "PRODUCTION_SITE_D1_DATABASE_ID",
         "sessionKvNamespaceIdVariable": "PRODUCTION_SITE_SESSION_KV_NAMESPACE_ID"
