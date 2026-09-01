@@ -228,6 +228,10 @@ test("provider contract is restricted to approved AstrologyAPI Human Design endp
   assert.match(provider, /ASTROLOGY_API_BASE_URL/);
   assert.match(provider, /X_ASTROLOGYAPI_KEY/);
   assert.match(provider, /"x-astrologyapi-key": apiKey/);
+  assert.match(
+    provider,
+    /endpoint: humanDesignEndpoints\.chart,\s+payload: buildHumanDesignInterpretationPayload\(input\)/,
+  );
   assert.doesNotMatch(
     provider,
     /ASTROLOGYAPI_USER_ID|ASTROLOGYAPI_PASSWORD|Basic \$\{btoa/,

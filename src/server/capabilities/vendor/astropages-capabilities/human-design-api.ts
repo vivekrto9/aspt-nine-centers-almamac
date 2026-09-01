@@ -165,7 +165,7 @@ export const createHumanDesignChart = async ({
   const chart = await postHumanDesignProvider({
     env,
     endpoint: humanDesignEndpoints.chart,
-    payload: input,
+    payload: buildHumanDesignInterpretationPayload(input),
     locale,
     fetcher,
   });
