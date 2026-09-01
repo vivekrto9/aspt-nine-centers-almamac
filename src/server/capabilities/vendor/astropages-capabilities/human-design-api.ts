@@ -1,10 +1,10 @@
 import { resolveSecretBinding } from "../../../aggregator/runtime-bindings.ts";
+import { getRuntimeConfigValue } from "../../../aggregator/runtime-config.ts";
 import { linkBusinessLead } from "../../../aggregator/lead-records.ts";
 import { createId, nowIso, safeString, type RuntimeEnv } from "../../../aggregator/runtime.ts";
 import { normalizeHumanDesignInput } from "./human-design-input.ts";
 
 export const humanDesignFeature = "nine-centres.human-design";
-export const astrologyApiBaseUrl = "https://api.astrologyapi.com";
 
 export const humanDesignEndpoints = {
   chart: "/v1/human-design",
@@ -22,14 +22,30 @@ const isRecord = (value: unknown): value is JsonRecord =>
 const providerMessage = (fallback: string, body: JsonRecord) =>
   safeString(body.message) || safeString(body.error) || fallback;
 
-const resolveCredentials = async (env: RuntimeEnv) => {
-  const [userId, password] = await Promise.all([
-    resolveSecretBinding(env, "ASTROLOGYAPI_USER_ID"),
-    resolveSecretBinding(env, "ASTROLOGYAPI_PASSWORD"),
+const resolveProviderConfig = async (env: RuntimeEnv) => {
+  const [configuredBaseUrl, apiKey] = await Promise.all([
+    getRuntimeConfigValue(env, "ASTROLOGY_API_BASE_URL"),
+    resolveSecretBinding(env, "X_ASTROLOGYAPI_KEY"),
   ]);
-  if (!userId || !password) throw new Error("AstrologyAPI credentials are not configured.");
-  return `Basic ${btoa(`${userId}:${password}`)}`;
+  const baseUrl = safeString(configuredBaseUrl).replace(/\/+$/, "");
+  if (!baseUrl) throw new Error("ASTROLOGY_API_BASE_URL is not configured.");
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new Error("ASTROLOGY_API_BASE_URL is invalid.");
+  }
+  if (url.protocol !== "https:" && url.hostname !== "localhost") {
+    throw new Error("ASTROLOGY_API_BASE_URL must use HTTPS.");
+  }
+  if (!apiKey) throw new Error("AstrologyAPI token is not configured.");
+  return { baseUrl, apiKey };
 };
+
+const joinProviderUrl = (baseUrl: string, endpoint: string) =>
+  baseUrl.endsWith("/v1") && endpoint.startsWith("/v1/")
+    ? `${baseUrl}${endpoint.slice(3)}`
+    : `${baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
 export const postHumanDesignProvider = async ({
   env,
@@ -44,13 +60,13 @@ export const postHumanDesignProvider = async ({
   locale?: string;
   fetcher?: ProviderFetch;
 }) => {
-  const authorization = await resolveCredentials(env);
-  const response = await fetcher(`${astrologyApiBaseUrl}${endpoint}`, {
+  const { baseUrl, apiKey } = await resolveProviderConfig(env);
+  const response = await fetcher(joinProviderUrl(baseUrl, endpoint), {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "accept-language": /^[a-z]{2}(?:-[A-Z]{2})?$/.test(locale) ? locale : "en",
-      authorization,
+      "x-astrologyapi-key": apiKey,
     },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(20_000),

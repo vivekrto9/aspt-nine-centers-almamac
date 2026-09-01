@@ -23,8 +23,6 @@ const builtInSecretKeys = new Set([
   "WATI_API_TOKEN",
   "MAILCHIMP_API_KEY",
   "X_ASTROLOGYAPI_KEY",
-  "ASTROLOGYAPI_USER_ID",
-  "ASTROLOGYAPI_PASSWORD",
   "GOOGLE_PLACES_API_KEY",
   "ASTROPAGES_PLATFORM_GOOGLE_PLACES_GOOGLE_PLACES_API_KEY",
 ]);
@@ -88,7 +86,7 @@ test("secret manifest contains requirements only and declares non-catalog lookup
 });
 
 test("project secret requirements reject catalog-managed provider keys", () => {
-  for (const key of ["CALENDLY_API_TOKEN", "CALENDLY_WEBHOOK_SIGNING_KEY", "ASTROLOGYAPI_USER_ID", "ASTROLOGYAPI_PASSWORD", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]) {
+  for (const key of ["CALENDLY_API_TOKEN", "CALENDLY_WEBHOOK_SIGNING_KEY", "X_ASTROLOGYAPI_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]) {
     assert.throws(
       () => assertProjectSecretRequirement(
         { key, environments: ["preview", "production"] }, builtInSecretKeys,

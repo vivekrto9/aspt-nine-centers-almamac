@@ -147,10 +147,32 @@ test("provider contract is restricted to approved AstrologyAPI Human Design endp
     "/v1/human-design/interpretation/about",
   ]) assert.equal(provider.includes(endpoint), true, `${endpoint} must be declared`);
   assert.doesNotMatch(provider, /human-design\/compatibility|human-design\/transit-range/);
-  assert.match(provider, /https:\/\/api\.astrologyapi\.com/);
-  assert.match(provider, /ASTROLOGYAPI_USER_ID/);
-  assert.match(provider, /ASTROLOGYAPI_PASSWORD/);
-  assert.match(provider, /Basic \$\{btoa/);
+  assert.match(provider, /ASTROLOGY_API_BASE_URL/);
+  assert.match(provider, /X_ASTROLOGYAPI_KEY/);
+  assert.match(provider, /"x-astrologyapi-key": apiKey/);
+  assert.doesNotMatch(provider, /ASTROLOGYAPI_USER_ID|ASTROLOGYAPI_PASSWORD|Basic \$\{btoa/);
+});
+
+test("Human Design requests use the canonical runtime URL and Worker secret", async () => {
+  const { humanDesignEndpoints, postHumanDesignProvider } = await import(
+    "../src/server/capabilities/vendor/astropages-capabilities/human-design-api.ts"
+  );
+  let captured;
+  await postHumanDesignProvider({
+    env: {
+      ASTROLOGY_API_BASE_URL: "https://astrology.test/v1",
+      X_ASTROLOGYAPI_KEY: "test-key",
+    },
+    endpoint: humanDesignEndpoints.chart,
+    payload: { birth_details: {} },
+    fetcher: async (url, init) => {
+      captured = { url, init };
+      return Response.json({ status: true });
+    },
+  });
+  assert.equal(captured.url, "https://astrology.test/v1/human-design");
+  assert.equal(captured.init.headers["x-astrologyapi-key"], "test-key");
+  assert.equal(captured.init.headers.authorization, undefined);
 });
 
 test("all 64 bodygraph gates terminate at the correct channel anchors", async () => {
@@ -187,7 +209,7 @@ test("Human Design readings keep durable storage and catalog-managed secrets out
   const secrets = JSON.parse(read("astropages/secrets.manifest.json"));
   assert.match(migration, /CREATE TABLE IF NOT EXISTS ap_human_design_readings/);
   const secretKeys = secrets.integrations.flatMap((integration) => integration.secrets.map((secret) => secret.key));
-  for (const key of ["ASTROLOGYAPI_USER_ID", "ASTROLOGYAPI_PASSWORD", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]) {
+  for (const key of ["X_ASTROLOGYAPI_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]) {
     assert.ok(!secretKeys.includes(key), `${key} is managed by the integration catalog`);
     assert.ok(read("scripts/validate-secrets-contract.mjs").includes(`"${key}"`), `${key} remains a supported built-in secret`);
   }
