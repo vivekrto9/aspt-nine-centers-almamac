@@ -1,15 +1,20 @@
 import { resolveSecretBinding } from "../../../aggregator/runtime-bindings.ts";
 import { getRuntimeConfigValue } from "../../../aggregator/runtime-config.ts";
 import { linkBusinessLead } from "../../../aggregator/lead-records.ts";
-import { createId, nowIso, safeString, type RuntimeEnv } from "../../../aggregator/runtime.ts";
+import {
+  createId,
+  nowIso,
+  safeString,
+  type RuntimeEnv,
+} from "../../../aggregator/runtime.ts";
 import { normalizeHumanDesignInput } from "./human-design-input.ts";
 
 export const humanDesignFeature = "nine-centres.human-design";
 
 export const humanDesignEndpoints = {
   chart: "/v1/human-design",
-  chartInterpretation: "/v1/human-design/interpretation/chart",
-  aboutInterpretation: "/v1/human-design/interpretation/about",
+  chartInterpretation: "/v1/human-design/chart-interpretation",
+  aboutInterpretation: "/v1/human-design/traits-interpretation",
 } as const;
 
 type JsonRecord = Record<string, unknown>;
@@ -65,25 +70,45 @@ export const postHumanDesignProvider = async ({
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "accept-language": /^[a-z]{2}(?:-[A-Z]{2})?$/.test(locale) ? locale : "en",
+      "accept-language": /^[a-z]{2}(?:-[A-Z]{2})?$/.test(locale)
+        ? locale
+        : "en",
       "x-astrologyapi-key": apiKey,
     },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(20_000),
   });
-  const body = await response.json().catch(() => ({})) as JsonRecord;
+  const body = (await response.json().catch(() => ({}))) as JsonRecord;
   if (!response.ok || body.status === false) {
-    throw new Error(providerMessage("AstrologyAPI Human Design request failed.", body));
+    throw new Error(
+      providerMessage("AstrologyAPI Human Design request failed.", body),
+    );
   }
   return body;
 };
 
 const validatePayload = (value: unknown) => {
-  if (!isRecord(value)) throw new Error("Human Design request body is invalid.");
+  if (!isRecord(value))
+    throw new Error("Human Design request body is invalid.");
   const encoded = JSON.stringify(value);
-  if (encoded.length > 80_000) throw new Error("Human Design request body is too large.");
+  if (encoded.length > 80_000)
+    throw new Error("Human Design request body is too large.");
   return value;
 };
+
+export const buildHumanDesignInterpretationPayload = (
+  input: JsonRecord,
+): JsonRecord => ({
+  name: input.name,
+  day: input.day,
+  month: input.month,
+  year: input.year,
+  hour: input.hour,
+  min: input.minute,
+  lat: input.latitude,
+  lon: input.longitude,
+  tzone: input.timezone_offset,
+});
 
 const saveReading = async ({
   env,
@@ -104,7 +129,17 @@ const saveReading = async ({
   if (!env.DB) throw new Error("Chart storage is not available.");
   await env.DB.prepare(
     "INSERT INTO ap_human_design_readings (id, reading_type, locale, status, input_json, result_json, created_at, updated_at) VALUES (?, ?, ?, 'ready', ?, ?, ?, ?)",
-  ).bind(id, kind, locale, JSON.stringify(input), JSON.stringify(result), now, now).run?.();
+  )
+    .bind(
+      id,
+      kind,
+      locale,
+      JSON.stringify(input),
+      JSON.stringify(result),
+      now,
+      now,
+    )
+    .run?.();
   return id;
 };
 
@@ -122,15 +157,44 @@ export const createHumanDesignChart = async ({
   now?: string;
 }) => {
   const rawInput = validatePayload(body);
-  const { provider: input, privateInput } = await normalizeHumanDesignInput({ value: rawInput, locale, fetcher });
-  const chart = await postHumanDesignProvider({ env, endpoint: humanDesignEndpoints.chart, payload: input, locale, fetcher });
-  const interpretationPayload = { ...input, chart };
+  const { provider: input, privateInput } = await normalizeHumanDesignInput({
+    value: rawInput,
+    locale,
+    fetcher,
+  });
+  const chart = await postHumanDesignProvider({
+    env,
+    endpoint: humanDesignEndpoints.chart,
+    payload: input,
+    locale,
+    fetcher,
+  });
+  const interpretationPayload = buildHumanDesignInterpretationPayload(input);
   const [interpretation, about] = await Promise.all([
-    postHumanDesignProvider({ env, endpoint: humanDesignEndpoints.chartInterpretation, payload: interpretationPayload, locale, fetcher }),
-    postHumanDesignProvider({ env, endpoint: humanDesignEndpoints.aboutInterpretation, payload: interpretationPayload, locale, fetcher }),
+    postHumanDesignProvider({
+      env,
+      endpoint: humanDesignEndpoints.chartInterpretation,
+      payload: interpretationPayload,
+      locale,
+      fetcher,
+    }),
+    postHumanDesignProvider({
+      env,
+      endpoint: humanDesignEndpoints.aboutInterpretation,
+      payload: interpretationPayload,
+      locale,
+      fetcher,
+    }),
   ]);
   const result = { chart, interpretation, about };
-  const readingId = await saveReading({ env, kind: "chart", input: privateInput, result, locale, now });
+  const readingId = await saveReading({
+    env,
+    kind: "chart",
+    input: privateInput,
+    result,
+    locale,
+    now,
+  });
   if (privateInput.email) {
     await linkBusinessLead({
       env,
@@ -161,14 +225,31 @@ export const createHumanDesignChart = async ({
   };
 };
 
-export const getHumanDesignReading = async ({ env, readingId, kind }: { env: RuntimeEnv; readingId: string; kind?: ReadingKind }) => {
+export const getHumanDesignReading = async ({
+  env,
+  readingId,
+  kind,
+}: {
+  env: RuntimeEnv;
+  readingId: string;
+  kind?: ReadingKind;
+}) => {
   if (!env.DB || !/^[A-Za-z0-9_-]{1,100}$/.test(readingId)) return null;
-  const row = await env.DB.prepare(
+  const row = (await env.DB.prepare(
     `SELECT id, reading_type, locale, input_json, result_json, created_at FROM ap_human_design_readings WHERE id = ?${kind ? " AND reading_type = ?" : ""} AND status = 'ready' LIMIT 1`,
-  ).bind(...(kind ? [readingId, kind] : [readingId])).first?.() as Record<string, unknown> | null | undefined;
+  )
+    .bind(...(kind ? [readingId, kind] : [readingId]))
+    .first?.()) as Record<string, unknown> | null | undefined;
   if (!row) return null;
   try {
-    return { readingId: safeString(row.id), kind: safeString(row.reading_type), locale: safeString(row.locale), profile: JSON.parse(safeString(row.input_json)), result: JSON.parse(safeString(row.result_json)), createdAt: safeString(row.created_at) };
+    return {
+      readingId: safeString(row.id),
+      kind: safeString(row.reading_type),
+      locale: safeString(row.locale),
+      profile: JSON.parse(safeString(row.input_json)),
+      result: JSON.parse(safeString(row.result_json)),
+      createdAt: safeString(row.created_at),
+    };
   } catch {
     return null;
   }
