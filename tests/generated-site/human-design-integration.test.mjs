@@ -18,6 +18,25 @@ test("birth details resolve to provider coordinates and historical timezone offs
   assert.equal(historicalTimezoneOffset({ timezone: "Europe/London", year: 1990, month: 1, day: 1, hour: 10, minute: 30 }), 0);
 });
 
+test("future birth details are rejected before a Human Design provider request", async () => {
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  await assert.rejects(
+    normalizeHumanDesignInput({
+      value: {
+        name: "Future chart",
+        email: "future@example.com",
+        birthDate: tomorrow,
+        birthTime: "23:59",
+        birthCity: "Mumbai, India",
+        latitude: 19.076,
+        longitude: 72.8777,
+        timezoneName: "Asia/Kolkata",
+      },
+    }),
+    /Birth date and time cannot be in the future/,
+  );
+});
+
 test("provider chart response maps into the canvas and property view", () => {
   const view = normalizeHumanDesignView({ chart: {
     type: "Projector", strategy: "Wait for the invitation", authority: "Splenic", profile: "2/4", definition: "Split Definition",
