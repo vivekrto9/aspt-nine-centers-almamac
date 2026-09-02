@@ -6,7 +6,7 @@ import { requireContentReleaseServiceAuth } from "./auth.ts";
 
 export const prerender = false;
 
-const feature = "astropages-base-template.content-release.export";
+const feature = "aspt-nine-centers-almamac.content-release.export";
 
 export const POST: APIRoute = async (context) => {
   const auth = await requireContentReleaseServiceAuth(context, feature);

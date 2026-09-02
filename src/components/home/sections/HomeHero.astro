@@ -1,6 +1,7 @@
 ---
 interface Props {
   dateline?: string;
+  title?: string;
   body?: string;
   kickerEdit?: Record<string, string>;
   titleEdit?: Record<string, string>;
@@ -12,6 +13,8 @@ interface Props {
 }
 
 const {
+  dateline = "Filed under: how you decide",
+  title = "Your chart already knows how you were built to decide.",
   body = "A map of how you are built to decide, drawn from your birth date, time and place. Nothing here forecasts events.",
   kickerEdit = {}, titleEdit = {}, bodyEdit = {},
   subtext = "Coloured centres are consistent in you. Open ones are where you absorb everyone else. Start with the free chart, decide about a reading after.",
@@ -23,8 +26,8 @@ const {
 
 <section class="home-hero" data-home-hero>
   <div class="hero-copy">
-    <p class="hero-dateline" data-hero-dateline {...kickerEdit}>Filed under: how you decide</p>
-    <h1 class="hero-title" data-hero-title {...titleEdit}>Your chart already knows how you were built to decide.</h1>
+    <p class="hero-dateline" data-hero-dateline {...kickerEdit}>{dateline}</p>
+    <h1 class="hero-title" data-hero-title {...titleEdit}>{title}</h1>
     <div class="hero-columns">
       <p class="lead-text" {...bodyEdit}>{body}</p>
       <p class="sub-text" {...subtextEdit}>{subtext}</p>

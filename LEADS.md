@@ -113,7 +113,7 @@ pnpm run d1:verify:local
 Inspect the latest records:
 
 ```sh
-pnpm wrangler d1 execute astropages-base-template-site --local --command \
+pnpm wrangler d1 execute aspt-nine-centers-almamac-site --local --command \
 "SELECT id, kind, source, full_name, email, phone, details_json, created_at
  FROM ap_leads
  ORDER BY created_at DESC

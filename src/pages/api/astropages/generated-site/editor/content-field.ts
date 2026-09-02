@@ -59,6 +59,15 @@ export const POST: APIRoute = async (context) => {
     return errorResponse(feature, "EmDash publish runtime is not configured.", 500);
   }
 
+  // Keep the persisted EmDash registry synchronized with the template's
+  // current Builder schema before validating a save or publish request.
+  try {
+    await bootstrapAstroPagesEmDashContent({ env, mode: "auto" });
+  } catch {
+    // The normal read/create/update path below retains the explicit EmDash
+    // error surface when physical schema or bootstrap preparation is invalid.
+  }
+
   const handleContentGet = emdash.handleContentGet;
   const readItem = async () =>
     contentItem(await handleContentGet(validated.collection, validated.entry, validated.locale));
@@ -100,7 +109,7 @@ export const POST: APIRoute = async (context) => {
 
   if (!item) {
     try {
-      await bootstrapAstroPagesEmDashContent({ env });
+      await bootstrapAstroPagesEmDashContent({ env, mode: "full" });
       item = await readItem();
     } catch {
       // If the bounded repair bootstrap fails, the explicit create below will
@@ -134,21 +143,34 @@ export const POST: APIRoute = async (context) => {
     if (!item) return emdashError(created, `Failed to create ${validated.collection}/${validated.entry} in EmDash.`, 500);
   }
 
-  let updated = await emdash.handleContentUpdate(validated.collection, item.id, {
-    data: storageData,
-  }).catch(async (error) => {
+  const updateItem = (entryId: string) =>
+    emdash.handleContentUpdate!(validated.collection, entryId, {
+      data: storageData,
+    });
+  let updated: unknown;
+  let updateException: unknown;
+  try {
+    updated = await updateItem(item.id);
+  } catch (error) {
+    updateException = error;
+  }
+
+  // EmDash may return a structured failure instead of throwing when registry
+  // metadata is stale. Repair and retry both failure shapes once.
+  if (!contentItem(updated)) {
     try {
-      await bootstrapAstroPagesEmDashContent({ env });
+      await bootstrapAstroPagesEmDashContent({ env, mode: "full" });
       const repairedItem = await readItem();
-      if (!repairedItem) throw error;
-      item = repairedItem;
-      return await emdash.handleContentUpdate!(validated.collection, repairedItem.id, {
-        data: storageData,
-      });
+      if (repairedItem) {
+        item = repairedItem;
+        updated = await updateItem(repairedItem.id);
+      }
     } catch {
-      throw error;
+      if (updateException) throw updateException;
     }
-  });
+  }
+  if (updateException && typeof updated === "undefined") throw updateException;
+
   const updatedItem = contentItem(updated);
   if (!updatedItem) return emdashError(updated, `Failed to update ${validated.collection}/${validated.entry} in EmDash.`, 500);
 

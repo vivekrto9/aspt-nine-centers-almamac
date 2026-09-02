@@ -114,7 +114,7 @@
       "PRODUCTION_SITE_URL"
     ],
     "deploymentMapping": {
-      "workerSecretsFile": "astropages-base-template-worker-secrets.json",
+      "workerSecretsFile": "aspt-nine-centers-almamac-worker-secrets.json",
       "workerSecrets": [
         "EMDASH_ENCRYPTION_KEY",
         "BUILDER_MCP_TOKEN",

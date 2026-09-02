@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { runtimeContract } from "./cloudflare-runtime-contract.mjs";
 
 const runnerTemp = process.env.RUNNER_TEMP ?? ".wrangler/generated";
-const outputPath = join(runnerTemp, "astropages-base-template-worker-secrets.json");
+const outputPath = join(runnerTemp, "aspt-nine-centers-almamac-worker-secrets.json");
 const secrets = {};
 
 for (const name of runtimeContract.requiredSecretNames) {

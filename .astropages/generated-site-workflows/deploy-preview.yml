@@ -202,7 +202,7 @@ jobs:
           set -euo pipefail
           echo "ASTROPAGES_DEPLOY_STAGE=worker_deploy" >> "$GITHUB_ENV"
           started_at="$(date +%s)"
-          pnpm exec wrangler deploy --env preview --config .wrangler/generated/wrangler.preview.jsonc --secrets-file "$RUNNER_TEMP/astropages-base-template-worker-secrets.json"
+          pnpm exec wrangler deploy --env preview --config .wrangler/generated/wrangler.preview.jsonc --secrets-file "$RUNNER_TEMP/aspt-nine-centers-almamac-worker-secrets.json"
           echo "Worker deploy completed in $(($(date +%s) - started_at))s" >> "$GITHUB_STEP_SUMMARY"
       - name: Prepare deployed EmDash
         run: |

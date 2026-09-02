@@ -62,7 +62,7 @@ Open `http://localhost:4321/lead-generation-demo` and submit the form.
 Run this from the `base-template` directory:
 
 ```sh
-pnpm wrangler d1 execute astropages-base-template-site --local --command \
+pnpm wrangler d1 execute aspt-nine-centers-almamac-site --local --command \
 "SELECT id, status, full_name, email, phone, source, form_key, page_path, created_at
  FROM ap_leads
  ORDER BY created_at DESC

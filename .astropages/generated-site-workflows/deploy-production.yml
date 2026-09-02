@@ -139,7 +139,7 @@ jobs:
           pnpm exec wrangler d1 migrations apply aspt-nine-centers-almamac-production-site --env production --remote --config .wrangler/generated/wrangler.production.jsonc
       - run: |
           echo "ASTROPAGES_DEPLOY_STAGE=worker_deploy" >> "$GITHUB_ENV"
-          pnpm exec wrangler deploy --env production --config .wrangler/generated/wrangler.production.jsonc --secrets-file "$RUNNER_TEMP/astropages-base-template-worker-secrets.json"
+          pnpm exec wrangler deploy --env production --config .wrangler/generated/wrangler.production.jsonc --secrets-file "$RUNNER_TEMP/aspt-nine-centers-almamac-worker-secrets.json"
       - run: |
           echo "ASTROPAGES_DEPLOY_STAGE=prepare_emdash" >> "$GITHUB_ENV"
           node scripts/prepare-deployed-emdash.mjs production

@@ -14,14 +14,14 @@ import { requireContentReleaseServiceAuth } from "./auth.ts";
 
 export const prerender = false;
 
-const feature = "astropages-base-template.content-release.import";
+const feature = "aspt-nine-centers-almamac.content-release.import";
 
 const isSnapshot = (value: unknown): value is ContentReleaseSnapshot =>
   Boolean(value) &&
   typeof value === "object" &&
   !Array.isArray(value) &&
   (value as { schemaVersion?: unknown }).schemaVersion === 1 &&
-  (value as { templateKey?: unknown }).templateKey === "astropages-base-template" &&
+  (value as { templateKey?: unknown }).templateKey === "aspt-nine-centers-almamac" &&
   Array.isArray((value as { entries?: unknown }).entries) &&
   typeof (value as { snapshotHash?: unknown }).snapshotHash === "string";
 

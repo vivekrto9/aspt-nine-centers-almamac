@@ -52,7 +52,7 @@ const createReadinessDb = async ({
   }
   const bootstrapRows = bootstrapState
     ? [{
-        template_key: "astropages-base-template",
+        template_key: "aspt-nine-centers-almamac",
         template_version: "test",
         builder_registry_hash: contract.registryHash,
         expected_collections: contract.expectedCollections,
