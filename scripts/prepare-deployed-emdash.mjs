@@ -1,5 +1,7 @@
+import { isExpectedDeployment, isDeepReady } from "./deployment-readiness.mjs";
 import { resolveBootstrapServiceToken } from "./emdash-bootstrap-auth.mjs";
 
+const expectedSha = process.env.ASTROPAGES_COMMIT_SHA?.trim();
 const envName = process.argv[2];
 if (!["preview", "production"].includes(envName)) {
   fail("Usage: node scripts/prepare-deployed-emdash.mjs <preview|production>");
@@ -34,15 +36,15 @@ async function warmWorkerHealth() {
   while (Date.now() < deadline) {
     try {
       const response = await warmupFetchWithTimeout(healthUrl, { method: "GET" }, 15_000);
-      if (response.ok) {
+      if (response.ok && isExpectedDeployment(await response.json().catch(() => null), expectedSha)) {
         console.log("Deployed Worker health route is ready.");
         return;
       }
-      lastStatus = response.status;
-      if (!isTransientWarmupStatus(response.status)) {
+      lastStatus = response.ok ? "stale deployment" : response.status;
+      if (!response.ok && !isTransientWarmupStatus(response.status)) {
         fail(`worker_unhealthy_after_deploy: health route returned ${response.status}`);
       }
-      console.log(`Worker health route returned ${response.status}; retrying...`);
+      console.log(`Worker health route returned ${lastStatus}; retrying...`);
     } catch (error) {
       lastStatus = describeWarmupError(error);
       if (!isTransientWarmupError(error)) {
@@ -281,7 +283,7 @@ async function configureEmDashSite() {
 
 async function bootstrapAstroPagesBuilderContent() {
   const readiness = await readEditReadiness();
-  if (readiness?.ready === true && readiness?.bootstrap?.ready === true) {
+  if (isDeepReady(readiness)) {
     console.log("Bootstrap already current; skipping full builder content bootstrap.");
     return;
   }
@@ -312,24 +314,33 @@ async function bootstrapAstroPagesBuilderContent() {
     batch += 1;
   }
 
+  if (!isDeepReady(await readEditReadiness())) {
+    fail("AstroPages builder content bootstrap failed: deployed deep readiness is not ready.");
+  }
+
   console.log(
     `AstroPages builder content ready: ${totalCollections} collections, ${totalFields} fields, ${totalEntries} entries.`,
   );
 }
 
 async function readEditReadiness() {
-  const readinessUrl = `${workerUrl}/api/astropages/generated-site/edit-readiness`;
-  try {
-    const response = await warmupFetchWithTimeout(readinessUrl, { method: "GET" }, 15_000);
-    const body = await response.json().catch(() => ({}));
-    if (response.ok) return body;
-    console.log(`Edit readiness returned ${response.status}; full builder content bootstrap will run.`);
-    return body;
-  } catch (error) {
-    const status = describeWarmupError(error);
-    console.log(`Edit readiness ${status}; full builder content bootstrap will run.`);
-    return null;
+  const readinessUrl = `${workerUrl}/api/astropages/generated-site/edit-readiness?deep=1`;
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await warmupFetchWithTimeout(readinessUrl, { method: "GET", cache: "no-store" }, 15_000);
+      const body = await response.json().catch(() => null);
+      if (body && isExpectedDeployment(body, expectedSha)) {
+        return response.ok ? body : { ...body, ready: false };
+      }
+      console.log("Waiting for edit readiness from the requested deployment...");
+    } catch (error) {
+      if (!isTransientWarmupError(error)) throw error;
+      console.log(`Edit readiness ${describeWarmupError(error)}; retrying...`);
+    }
+    await sleep(5_000);
   }
+  fail("Edit readiness did not confirm the requested deployment before timeout.");
 }
 
 function bootstrapServiceToken() {
@@ -368,6 +379,12 @@ async function postBootstrapBatch({ serviceToken, cursor, limit }) {
     }
 
     const payload = await response.json().catch(() => ({}));
+    if (response.ok && !isExpectedDeployment(payload, expectedSha)) {
+      lastStatus = "stale deployment";
+      console.log("Bootstrap reached an older Worker; retrying the same batch...");
+      await sleep(5_000);
+      continue;
+    }
     if (response.ok) {
       return payload;
     }

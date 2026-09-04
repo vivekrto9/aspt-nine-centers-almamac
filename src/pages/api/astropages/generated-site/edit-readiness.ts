@@ -1,3 +1,4 @@
+import { buildSha } from "../../../../server/generated-site/build-identity.ts";
 import type { APIRoute } from "astro";
 
 import type { D1DatabaseLike } from "../../../../server/aggregator/runtime.ts";
@@ -35,6 +36,7 @@ export const GET: APIRoute = async (context) => {
   const mode = requestUrl.searchParams.get("deep") === "1" ? "deep" : "fast";
   if (!db) {
     return json({
+      buildSha,
       status: "not_ready",
       state: "missing_d1",
       feature: "aspt-nine-centers-almamac.generated-site.edit-readiness",
@@ -58,6 +60,7 @@ export const GET: APIRoute = async (context) => {
   const ready = missingTables.length === 0 && Boolean(bootstrap?.ready);
 
   return json({
+    buildSha,
     status: ready ? "ready" : "not_ready",
     state: ready ? "ready" : missingTables.length ? "missing_tables" : "missing_builder_content",
     feature: "aspt-nine-centers-almamac.generated-site.edit-readiness",

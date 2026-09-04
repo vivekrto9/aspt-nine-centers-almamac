@@ -1,3 +1,4 @@
+import { buildSha } from "../../../../../server/generated-site/build-identity.ts";
 import type { APIRoute } from "astro";
 
 import { safeString } from "../../../../../server/aggregator/runtime.ts";
@@ -73,7 +74,7 @@ export const POST: APIRoute = async (context) => {
       state: "ready",
       feature,
       message: "Generated-site EmDash content is bootstrapped.",
-      data: result,
+      data: { ...result, buildSha },
     });
   } catch (error) {
     return errorResponse(

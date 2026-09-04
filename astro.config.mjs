@@ -66,6 +66,9 @@ export default defineConfig({
 		}),
 	],
 	vite: {
+		define: {
+			__ASTROPAGES_BUILD_SHA__: JSON.stringify(process.env.ASTROPAGES_COMMIT_SHA?.trim() || null),
+		},
 		build: {
 			// The generated-site Worker includes Astro, EmDash admin/MCP, and the
 			// Cloudflare adapter in one server bundle. Keep this threshold explicit

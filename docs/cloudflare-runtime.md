@@ -53,17 +53,25 @@ node scripts/prepare-deployed-emdash.mjs preview
 node scripts/prepare-deployed-emdash.mjs production
 ```
 
-The script first checks:
+The build embeds `ASTROPAGES_COMMIT_SHA` in the Worker. Preparation waits for
+health and readiness responses matching that commit, so an old Worker cannot
+short-circuit initialization during rollout. Bootstrap batches from an old Worker
+are retried without advancing the cursor. Manual preparation without a commit
+uses deep readiness but cannot verify deployment identity.
+
+The script then checks:
 
 ```text
-/api/astropages/generated-site/edit-readiness
+/api/astropages/generated-site/edit-readiness?deep=1
 ```
 
-If bootstrap state is current, it skips the full content bootstrap. If state is missing or stale, it calls:
+If deep readiness confirms the current deployment is ready, it skips the full content bootstrap. If state is missing or stale, it calls:
 
 ```text
 POST /api/astropages/generated-site/emdash/bootstrap
 ```
+
+After full bootstrap, deep readiness must pass before preparation succeeds.
 
 The full bootstrap is idempotent and must not overwrite non-empty edited content.
 
