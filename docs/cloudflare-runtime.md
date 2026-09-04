@@ -65,13 +65,17 @@ The script then checks:
 /api/astropages/generated-site/edit-readiness?deep=1
 ```
 
-If deep readiness confirms the current deployment is ready, it skips the full content bootstrap. If state is missing or stale, it calls:
+Both deep content readiness and fast completion-record readiness must pass for
+the expected commit and registry hash. Deep readiness alone does not verify the
+saved bootstrap marker. If both checks pass, it skips the full content bootstrap. If state is missing or stale, it calls:
 
 ```text
 POST /api/astropages/generated-site/emdash/bootstrap
 ```
 
-After full bootstrap, deep readiness must pass before preparation succeeds.
+After full bootstrap, both deep and fast readiness must pass before preparation
+succeeds. A missing or stale completion record therefore triggers full bootstrap
+even when all published content already exists; existing edited content is preserved.
 
 The full bootstrap is idempotent and must not overwrite non-empty edited content.
 

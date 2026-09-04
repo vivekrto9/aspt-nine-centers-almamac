@@ -64,6 +64,18 @@ const createFakeD1 = () => {
             const table = sql.match(/PRAGMA table_info\("?(ec_[a-z0-9_]+)"?\)/i)?.[1];
             return { results: [...(tables.get(table) ?? [])].map((name) => ({ name })) };
           }
+          if (/FROM _emdash_collections WHERE slug IN/i.test(sql)) {
+            return { results: tableRows("_emdash_collections").filter(row => this.values.includes(row.slug)) };
+          }
+          if (/FROM _emdash_fields f/i.test(sql)) {
+            return { results: tableRows("_emdash_fields")
+              .filter(row => this.values.includes(row.collection_id))
+              .map(row => ({ collection: rowByKey("_emdash_collections", "id", row.collection_id).slug, field: row.slug })) };
+          }
+          if (/SELECT slug, locale FROM/i.test(sql)) {
+            const table = sql.match(/FROM\s+"?(ec_[a-z0-9_]+)"?/i)[1];
+            return { results: tableRows(table).filter(row => row.status === "published" && this.values.includes(row.slug) && this.values.includes(row.locale)) };
+          }
           return { results: [] };
         },
         async run() {
@@ -305,3 +317,25 @@ test("deployed EmDash preparation bootstraps content through the bounded generat
   assert.doesNotMatch(source, /createCloudflareD1Binding/);
   assert.doesNotMatch(source, /import\("\.\.\/src\/server\/generated-site\/emdash-bootstrap\.ts"\)/);
 });
+
+for (const markerCondition of ["missing", "stale"]) {
+  test(`full bootstrap repairs a ${markerCondition} marker without overwriting published edits`, async () => {
+    const { bootstrapAstroPagesEmDashContent, readAstroPagesEmDashBootstrapStatus } =
+      await import("../../src/server/generated-site/emdash-bootstrap.ts");
+    const env = { DB: createFakeD1() };
+    await bootstrapAstroPagesEmDashContent({ env, mode: "full" });
+    const home = env.DB.rows.get("ec_site_pages").find(row => row.slug === "home");
+    home.hero_title = "My published custom heading";
+    if (markerCondition === "missing") env.DB.rows.set("ap_emdash_bootstrap_state", []);
+    else env.DB.rows.get("ap_emdash_bootstrap_state")[0].builder_registry_hash = "old-hash";
+
+    assert.equal((await readAstroPagesEmDashBootstrapStatus({ env, mode: "deep" })).ready, true);
+    assert.equal((await readAstroPagesEmDashBootstrapStatus({ env, mode: "fast" })).ready, false);
+    const before = env.DB.statements.length;
+    await bootstrapAstroPagesEmDashContent({ env, mode: "full", cursor: 0, limit: 10 });
+    assert.equal((await readAstroPagesEmDashBootstrapStatus({ env, mode: "fast" })).ready, true);
+    assert.equal((await readAstroPagesEmDashBootstrapStatus({ env, mode: "deep" })).ready, true);
+    assert.equal(home.hero_title, "My published custom heading");
+    assert.equal(env.DB.statements.slice(before).some(statement => /INSERT INTO revisions|UPDATE\s+"?ec_/i.test(statement.sql)), false);
+  });
+}

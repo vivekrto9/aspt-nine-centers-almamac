@@ -1,4 +1,4 @@
-import { isExpectedDeployment, isDeepReady } from "./deployment-readiness.mjs";
+import { isExpectedDeployment, isBootstrapCurrent } from "./deployment-readiness.mjs";
 import { resolveBootstrapServiceToken } from "./emdash-bootstrap-auth.mjs";
 
 const expectedSha = process.env.ASTROPAGES_COMMIT_SHA?.trim();
@@ -282,8 +282,7 @@ async function configureEmDashSite() {
 }
 
 async function bootstrapAstroPagesBuilderContent() {
-  const readiness = await readEditReadiness();
-  if (isDeepReady(readiness)) {
+  if (await bootstrapReadinessIsCurrent()) {
     console.log("Bootstrap already current; skipping full builder content bootstrap.");
     return;
   }
@@ -314,8 +313,8 @@ async function bootstrapAstroPagesBuilderContent() {
     batch += 1;
   }
 
-  if (!isDeepReady(await readEditReadiness())) {
-    fail("AstroPages builder content bootstrap failed: deployed deep readiness is not ready.");
+  if (!(await bootstrapReadinessIsCurrent())) {
+    fail("AstroPages builder content bootstrap failed: deployed deep or fast readiness is not ready.");
   }
 
   console.log(
@@ -323,8 +322,16 @@ async function bootstrapAstroPagesBuilderContent() {
   );
 }
 
-async function readEditReadiness() {
-  const readinessUrl = `${workerUrl}/api/astropages/generated-site/edit-readiness?deep=1`;
+async function bootstrapReadinessIsCurrent() {
+  const deep = await readEditReadiness("deep");
+  const fast = await readEditReadiness("fast");
+  if (isBootstrapCurrent(deep, fast)) return true;
+  console.log(`Bootstrap verification: content=${deep?.ready === true ? "ready" : "not_ready"}, completion_record=${fast?.ready === true ? "current" : "missing_or_stale"}; full bootstrap required.`);
+  return false;
+}
+
+async function readEditReadiness(mode) {
+  const readinessUrl = `${workerUrl}/api/astropages/generated-site/edit-readiness${mode === "deep" ? "?deep=1" : ""}`;
   const deadline = Date.now() + 120_000;
   while (Date.now() < deadline) {
     try {
