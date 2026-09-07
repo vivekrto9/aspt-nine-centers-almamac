@@ -31,7 +31,14 @@ const baseTables = new Set([
   "ap_email_events",
   "ap_email_variable_mappings",
 ]);
-const runtimeTables = [...baseTables, "ap_human_design_readings", "ap_human_design_orders"];
+const runtimeTables = [
+  ...baseTables,
+  "ap_human_design_readings",
+  "ap_human_design_orders",
+  "ap_analytics_deliveries",
+  "ap_email_deliveries",
+  "ap_booking_preview_policy",
+];
 
 test("template manifest declares core platform metadata without generated-site admin", () => {
   const manifest = readJson("template.manifest.json");

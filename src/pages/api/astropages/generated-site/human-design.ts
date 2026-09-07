@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { createHumanDesignChart, getHumanDesignReading, humanDesignFeature } from "../../../../server/capabilities/vendor/astropages-capabilities/human-design-api.ts";
 import { getRuntimeEnv, readJsonBody, requirePost } from "../../../../server/generated-site/request.ts";
 import { errorResponse } from "../../../../server/generated-site/responses.ts";
-import { readSenderSettings, sendSesTransactionalEmail } from "../../../../server/aggregator/notifications/ses.ts";
+import { readSenderSettings, sendTransactionalEmail } from "../../../../server/aggregator/notifications/transactional.ts";
 import { normalizeHumanDesignView } from "../../../../server/capabilities/vendor/astropages-capabilities/human-design-view.ts";
 
 export const prerender = false;
@@ -41,7 +41,7 @@ export const POST: APIRoute = async (context) => {
       let origin = requestUrl.origin;
       try { if (configuredOrigin) origin = new URL(configuredOrigin).origin; } catch {}
       const chartUrl = `${origin}/human-design/${encodeURIComponent(created.readingId)}`;
-      await sendSesTransactionalEmail({
+      await sendTransactionalEmail({
         env,
         message: {
           to: [{ email }],
