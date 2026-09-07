@@ -139,7 +139,13 @@
       "ASTROLOGY_API_BASE_URL",
       "POSTHOG_PROJECT_API_KEY",
       "POSTHOG_HOST",
-      "POSTHOG_PROJECT_ID"
+      "POSTHOG_PROJECT_ID",
+      "TRANSACTIONAL_EMAIL_PROVIDER",
+      "ACTIVE_ANALYTICS_PROVIDER",
+      "ACTIVE_SCHEDULING_PROVIDER",
+      "GMAIL_SENDER_EMAIL",
+      "GMAIL_SENDER_NAME",
+      "GA4_MEASUREMENT_ID"
     ],
     "providerCredentials": [
       "AWS_ACCESS_KEY_ID",
@@ -150,7 +156,12 @@
       "POSTHOG_PERSONAL_API_KEY",
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
-      "X_ASTROLOGYAPI_KEY"
+      "X_ASTROLOGYAPI_KEY",
+      "GMAIL_OAUTH_CLIENT_ID",
+      "GMAIL_OAUTH_CLIENT_SECRET",
+      "GMAIL_OAUTH_REFRESH_TOKEN",
+      "GMAIL_STATUS_CALLBACK_TOKEN",
+      "GA4_API_SECRET"
     ]
   },
   "localization": {
@@ -521,7 +532,10 @@
       "ap_email_events",
       "ap_email_variable_mappings",
       "ap_human_design_readings",
-      "ap_human_design_orders"
+      "ap_human_design_orders",
+      "ap_analytics_deliveries",
+      "ap_email_deliveries",
+      "ap_booking_preview_policy"
     ]
   }
 }

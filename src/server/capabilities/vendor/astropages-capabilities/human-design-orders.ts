@@ -1,7 +1,7 @@
 import { linkBusinessLead, markLeadConvertedBySourceReference, normalizeLeadEmail } from "../../../aggregator/lead-records.ts";
 import { AP_TABLES } from "../../../aggregator/db/tables.ts";
 import { createId, nowIso, safeString, type RuntimeEnv } from "../../../aggregator/runtime.ts";
-import { readSenderSettings, sendSesTransactionalEmail } from "../../../aggregator/notifications/ses.ts";
+import { readSenderSettings, sendTransactionalEmail } from "../../../aggregator/notifications/transactional.ts";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -123,7 +123,7 @@ export const fulfillHumanDesignOrder = async ({
   const sender = await readSenderSettings(env);
   if (sender.senderEmail) {
     const safeOrderNumber = escapeHtml(order.order_number);
-    const customerResult = await sendSesTransactionalEmail({
+    const customerResult = await sendTransactionalEmail({
       env,
       message: {
         to: [{ email: order.email }],
@@ -138,7 +138,7 @@ export const fulfillHumanDesignOrder = async ({
       await env.DB.prepare(`UPDATE ${AP_TABLES.humanDesignOrders} SET fulfillment_status = 'notified', fulfilled_at = ?, updated_at = ? WHERE id = ?`)
         .bind(nowIso(), nowIso(), orderId).run?.();
     }
-    await sendSesTransactionalEmail({
+    await sendTransactionalEmail({
       env,
       message: {
         to: [{ email: sender.senderEmail }],

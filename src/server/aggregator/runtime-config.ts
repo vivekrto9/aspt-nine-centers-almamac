@@ -25,6 +25,11 @@ const isMissingRuntimeConfigTableError = (error: unknown) => {
 export const runtimeConfigCacheTtlMs = 60_000;
 
 export const runtimeConfigKeys = [
+  "TRANSACTIONAL_EMAIL_PROVIDER",
+  "ACTIVE_ANALYTICS_PROVIDER",
+  "ACTIVE_SCHEDULING_PROVIDER",
+  "GMAIL_SENDER_EMAIL",
+  "GMAIL_SENDER_NAME",
   "SES_SENDER_EMAIL",
   "SES_SENDER_NAME",
   "AWS_REGION",
@@ -40,6 +45,10 @@ export const runtimeConfigKeys = [
 ] as const;
 
 export const sensitiveRuntimeBindingNames = [
+  "GMAIL_OAUTH_CLIENT_ID",
+  "GMAIL_OAUTH_CLIENT_SECRET",
+  "GMAIL_OAUTH_REFRESH_TOKEN",
+  "GMAIL_STATUS_CALLBACK_TOKEN",
   "AWS_ACCESS_KEY_ID",
   "AWS_SECRET_ACCESS_KEY",
   "GA4_API_SECRET",
@@ -88,15 +97,17 @@ export const getRuntimeConfig = async (env: RuntimeEnv): Promise<RuntimeConfigMa
   if (env.DB) {
     try {
       const statement = env.DB.prepare(
-        `SELECT key, value
+        `SELECT key, value, status
          FROM ${tables.runtimeConfig}
-         WHERE status = 'active'`,
+         WHERE status IN ('active', 'disabled')`,
       );
-      const rows = await statement.all?.<{ key?: string; value?: string }>() ?? { results: [] };
+      const rows = await statement.all?.<{ key?: string; value?: string; status?: string }>() ?? { results: [] };
       for (const row of rows.results ?? []) {
         const key = safeString(row.key);
         if (isRuntimeConfigKey(key)) {
-          values[key] = safeString(row.value);
+          values[key] = row.status === "disabled"
+            ? (["TRANSACTIONAL_EMAIL_PROVIDER", "ACTIVE_ANALYTICS_PROVIDER", "ACTIVE_SCHEDULING_PROVIDER"].includes(key) ? "none" : "")
+            : safeString(row.value);
         }
       }
     } catch (error) {
@@ -114,7 +125,7 @@ export const getRuntimeConfigValue = async (
 ) => {
   const config = await getRuntimeConfig(env);
   const configuredValue = safeString(config[key]);
-  if (configuredValue) return configuredValue;
+  if (Object.hasOwn(config, key)) return configuredValue;
 
   // Local/template maintenance fallback; production generated sites should use D1 runtime config.
   return safeString(env[key]) || await resolveRuntimeBinding(env[key]);
@@ -134,7 +145,15 @@ export const upsertRuntimeConfigRows = async ({
   }>;
   disabledKeys: string[];
 }) => {
-  if (!env.DB) return;
+  if (!env.DB) throw new Error("Runtime configuration database is unavailable.");
+  const selections: Record<string, string[]> = {
+    TRANSACTIONAL_EMAIL_PROVIDER: ["ses", "gmail"],
+    ACTIVE_ANALYTICS_PROVIDER: ["posthog", "ga4", "ga4_measurement_protocol"],
+    ACTIVE_SCHEDULING_PROVIDER: ["calendly", "google_calendar"],
+  };
+  for (const item of config) {
+    if (selections[item.key] && item.status !== "disabled" && !selections[item.key].includes(item.value)) throw new Error("Unsupported active integration provider.");
+  }
   const now = new Date().toISOString();
 
   for (const item of config) {
@@ -164,10 +183,10 @@ export const upsertRuntimeConfigRows = async ({
     const safeKey = safeString(key);
     if (!isRuntimeConfigKey(safeKey) || isSensitiveRuntimeBindingName(safeKey)) continue;
     await env.DB.prepare(
-      `UPDATE ${tables.runtimeConfig}
-       SET status = 'disabled', updated_at = ?
-       WHERE key = ?`,
-    ).bind(now, safeKey).run?.();
+      `INSERT INTO ${tables.runtimeConfig} (key, value, provider_key, scope, status, updated_at)
+       VALUES (?, '', NULL, 'provider', 'disabled', ?)
+       ON CONFLICT(key) DO UPDATE SET status = 'disabled', updated_at = excluded.updated_at`,
+    ).bind(safeKey, now).run?.();
   }
 
   invalidateRuntimeConfigCache();
