@@ -149,6 +149,10 @@ export const normalizeHumanDesignInput = async ({
     throw new Error("Birth-place coordinates are invalid.");
   }
   const timezoneOffset = historicalTimezoneOffset({ timezone: location.timezone, year, month, day, hour, minute });
+  const birthInstant = Date.UTC(year, month - 1, day, hour, minute) - timezoneOffset * 3_600_000;
+  if (birthInstant > Date.now()) {
+    throw new Error("Birth date and time cannot be in the future.");
+  }
   const resolvedPlace = [location.name, "admin1" in location ? location.admin1 : "", "country" in location ? location.country : ""]
     .filter(Boolean).filter((item, index, items) => items.indexOf(item) === index).join(", ");
 

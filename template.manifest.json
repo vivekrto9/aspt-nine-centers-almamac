@@ -6,6 +6,7 @@
     "commitSha": "RESOLVED_AT_TEMPLATE_REGISTRATION"
   },
   "stage": "starter-template",
+  "catalogPreviewUrl": "https://aspt-nine-centers-almamac-preview.alok-prasad.workers.dev",
   "runtime": {
     "type": "official-emdash-astro-cloudflare",
     "scaffold": {
@@ -32,20 +33,20 @@
     "environments": [
       {
         "name": "preview",
-        "workerName": "astropages-base-template-preview",
-        "d1DatabaseName": "astropages-base-template-preview-site",
-        "r2BucketName": "astropages-base-template-preview-media",
-        "kvNamespaceName": "astropages-base-template-preview-session",
+        "workerName": "aspt-nine-centers-almamac-preview",
+        "d1DatabaseName": "aspt-nine-centers-almamac-preview-site",
+        "r2BucketName": "aspt-nine-centers-almamac-preview-media",
+        "kvNamespaceName": "aspt-nine-centers-almamac-preview-session",
         "siteUrlVariable": "PREVIEW_SITE_URL",
         "d1DatabaseIdVariable": "PREVIEW_SITE_D1_DATABASE_ID",
         "sessionKvNamespaceIdVariable": "PREVIEW_SITE_SESSION_KV_NAMESPACE_ID"
       },
       {
         "name": "production",
-        "workerName": "astropages-base-template-production",
-        "d1DatabaseName": "astropages-base-template-production-site",
-        "r2BucketName": "astropages-base-template-production-media",
-        "kvNamespaceName": "astropages-base-template-production-session",
+        "workerName": "aspt-nine-centers-almamac-production",
+        "d1DatabaseName": "aspt-nine-centers-almamac-production-site",
+        "r2BucketName": "aspt-nine-centers-almamac-production-media",
+        "kvNamespaceName": "aspt-nine-centers-almamac-production-session",
         "siteUrlVariable": "PRODUCTION_SITE_URL",
         "d1DatabaseIdVariable": "PRODUCTION_SITE_D1_DATABASE_ID",
         "sessionKvNamespaceIdVariable": "PRODUCTION_SITE_SESSION_KV_NAMESPACE_ID"
@@ -113,7 +114,7 @@
       "PRODUCTION_SITE_URL"
     ],
     "deploymentMapping": {
-      "workerSecretsFile": "astropages-base-template-worker-secrets.json",
+      "workerSecretsFile": "aspt-nine-centers-almamac-worker-secrets.json",
       "workerSecrets": [
         "EMDASH_ENCRYPTION_KEY",
         "BUILDER_MCP_TOKEN",
@@ -135,6 +136,7 @@
       "SES_SENDER_EMAIL",
       "SES_SENDER_NAME",
       "AWS_REGION",
+      "ASTROLOGY_API_BASE_URL",
       "POSTHOG_PROJECT_API_KEY",
       "POSTHOG_HOST",
       "POSTHOG_PROJECT_ID"
@@ -148,8 +150,7 @@
       "POSTHOG_PERSONAL_API_KEY",
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
-      "ASTROLOGYAPI_USER_ID",
-      "ASTROLOGYAPI_PASSWORD"
+      "X_ASTROLOGYAPI_KEY"
     ]
   },
   "localization": {

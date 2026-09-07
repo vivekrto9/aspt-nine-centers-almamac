@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { runtimeContract } from "./cloudflare-runtime-contract.mjs";
 
 const runnerTemp = process.env.RUNNER_TEMP ?? ".wrangler/generated";
-const outputPath = join(runnerTemp, "astropages-base-template-worker-secrets.json");
+const outputPath = join(runnerTemp, "aspt-nine-centers-almamac-worker-secrets.json");
 const secrets = {};
 
 for (const name of runtimeContract.requiredSecretNames) {
@@ -14,6 +14,19 @@ for (const name of runtimeContract.requiredSecretNames) {
     process.exit(1);
   }
   secrets[name] = value;
+}
+
+const optionalSecretNames = [
+  "ASTROPAGES_CONTROL_PLANE_CALLBACK_TOKEN",
+  "SERVICE_CALLBACK_BEARER_TOKEN",
+  ...runtimeContract.sensitiveProviderSecretBindings.map((item) => item.binding),
+];
+
+for (const name of optionalSecretNames) {
+  const value = process.env[name];
+  if (value) {
+    secrets[name] = value;
+  }
 }
 
 mkdirSync(dirname(outputPath), { recursive: true });

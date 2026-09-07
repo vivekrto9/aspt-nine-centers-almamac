@@ -1,3 +1,4 @@
+import { buildSha } from "../../../../server/generated-site/build-identity.ts";
 import type { APIRoute } from "astro";
 
 export const prerender = false;
@@ -5,6 +6,7 @@ export const prerender = false;
 export const GET: APIRoute = async () =>
   new Response(
     JSON.stringify({
+      buildSha,
       status: "ready",
       state: "ready",
       feature: "base-template.generated-site.health",

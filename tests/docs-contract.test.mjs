@@ -24,7 +24,7 @@ test("repository docs describe Nine Centres Field Almanac without stale single-p
   assert.doesNotMatch(publicDocs, /single-page AstroPages template/i);
   assert.doesNotMatch(publicDocs, /only the home page/i);
   assert.doesNotMatch(d1Schema, /single-page/i);
-  assert.doesNotMatch(publicDocs, /templates\/astropages-base-template\/0\.1\.0\//);
+  assert.doesNotMatch(publicDocs, /templates\/aspt-nine-centers-almamac\/0\.1\.0\//);
   assert.doesNotMatch(publicDocs, /\b(?:PREVIEW_ASTRAGURU|PROD_ASTRAGURU|ASTROCONNECT)\b/);
   assert.match(docs.readme, /AstroPages Admin owns the semantic version, release notes, and changelog/i);
 });
@@ -34,7 +34,7 @@ test("lead documentation is an agent-ready integration reference", () => {
   assert.match(docs.leads, /leads\.v1/);
   assert.match(docs.leads, /linkBusinessLead/);
   assert.match(docs.leads, /markLeadConvertedBySourceReference/);
-  assert.match(docs.leads, /wrangler d1 execute astropages-base-template-site --local/);
+  assert.match(docs.leads, /wrangler d1 execute aspt-nine-centers-almamac-site --local/);
   assert.match(docs.productLeads, /POST \/api\/astropages\/generated-site\/leads\/product-interest/);
   assert.match(docs.productLeads, /pnpm wrangler dev --local --port 4321/);
 });

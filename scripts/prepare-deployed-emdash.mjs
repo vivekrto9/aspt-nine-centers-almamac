@@ -1,3 +1,7 @@
+import { isExpectedDeployment, isBootstrapCurrent } from "./deployment-readiness.mjs";
+import { resolveBootstrapServiceToken } from "./emdash-bootstrap-auth.mjs";
+
+const expectedSha = process.env.ASTROPAGES_COMMIT_SHA?.trim();
 const envName = process.argv[2];
 if (!["preview", "production"].includes(envName)) {
   fail("Usage: node scripts/prepare-deployed-emdash.mjs <preview|production>");
@@ -32,15 +36,15 @@ async function warmWorkerHealth() {
   while (Date.now() < deadline) {
     try {
       const response = await warmupFetchWithTimeout(healthUrl, { method: "GET" }, 15_000);
-      if (response.ok) {
+      if (response.ok && isExpectedDeployment(await response.json().catch(() => null), expectedSha)) {
         console.log("Deployed Worker health route is ready.");
         return;
       }
-      lastStatus = response.status;
-      if (!isTransientWarmupStatus(response.status)) {
+      lastStatus = response.ok ? "stale deployment" : response.status;
+      if (!response.ok && !isTransientWarmupStatus(response.status)) {
         fail(`worker_unhealthy_after_deploy: health route returned ${response.status}`);
       }
-      console.log(`Worker health route returned ${response.status}; retrying...`);
+      console.log(`Worker health route returned ${lastStatus}; retrying...`);
     } catch (error) {
       lastStatus = describeWarmupError(error);
       if (!isTransientWarmupError(error)) {
@@ -278,8 +282,7 @@ async function configureEmDashSite() {
 }
 
 async function bootstrapAstroPagesBuilderContent() {
-  const readiness = await readEditReadiness();
-  if (readiness?.ready === true && readiness?.bootstrap?.ready === true) {
+  if (await bootstrapReadinessIsCurrent()) {
     console.log("Bootstrap already current; skipping full builder content bootstrap.");
     return;
   }
@@ -310,37 +313,45 @@ async function bootstrapAstroPagesBuilderContent() {
     batch += 1;
   }
 
+  if (!(await bootstrapReadinessIsCurrent())) {
+    fail("AstroPages builder content bootstrap failed: deployed deep or fast readiness is not ready.");
+  }
+
   console.log(
     `AstroPages builder content ready: ${totalCollections} collections, ${totalFields} fields, ${totalEntries} entries.`,
   );
 }
 
-async function readEditReadiness() {
-  const readinessUrl = `${workerUrl}/api/astropages/generated-site/edit-readiness`;
-  try {
-    const response = await warmupFetchWithTimeout(readinessUrl, { method: "GET" }, 15_000);
-    const body = await response.json().catch(() => ({}));
-    if (response.ok) return body;
-    console.log(`Edit readiness returned ${response.status}; full builder content bootstrap will run.`);
-    return body;
-  } catch (error) {
-    const status = describeWarmupError(error);
-    console.log(`Edit readiness ${status}; full builder content bootstrap will run.`);
-    return null;
+async function bootstrapReadinessIsCurrent() {
+  const deep = await readEditReadiness("deep");
+  const fast = await readEditReadiness("fast");
+  if (isBootstrapCurrent(deep, fast)) return true;
+  console.log(`Bootstrap verification: content=${deep?.ready === true ? "ready" : "not_ready"}, completion_record=${fast?.ready === true ? "current" : "missing_or_stale"}; full bootstrap required.`);
+  return false;
+}
+
+async function readEditReadiness(mode) {
+  const readinessUrl = `${workerUrl}/api/astropages/generated-site/edit-readiness${mode === "deep" ? "?deep=1" : ""}`;
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await warmupFetchWithTimeout(readinessUrl, { method: "GET", cache: "no-store" }, 15_000);
+      const body = await response.json().catch(() => null);
+      if (body && isExpectedDeployment(body, expectedSha)) {
+        return response.ok ? body : { ...body, ready: false };
+      }
+      console.log("Waiting for edit readiness from the requested deployment...");
+    } catch (error) {
+      if (!isTransientWarmupError(error)) throw error;
+      console.log(`Edit readiness ${describeWarmupError(error)}; retrying...`);
+    }
+    await sleep(5_000);
   }
+  fail("Edit readiness did not confirm the requested deployment before timeout.");
 }
 
 function bootstrapServiceToken() {
-  const token =
-    process.env.ASTROPAGES_CONTROL_PLANE_CALLBACK_TOKEN ||
-    process.env.SERVICE_CALLBACK_BEARER_TOKEN ||
-    process.env.BUILDER_MCP_PROVISION_SECRET;
-  if (!token) {
-    fail(
-      "AstroPages builder content bootstrap requires ASTROPAGES_CONTROL_PLANE_CALLBACK_TOKEN, SERVICE_CALLBACK_BEARER_TOKEN, or BUILDER_MCP_PROVISION_SECRET.",
-    );
-  }
-  return token;
+  return resolveBootstrapServiceToken(process.env);
 }
 
 async function postBootstrapBatch({ serviceToken, cursor, limit }) {
@@ -375,6 +386,12 @@ async function postBootstrapBatch({ serviceToken, cursor, limit }) {
     }
 
     const payload = await response.json().catch(() => ({}));
+    if (response.ok && !isExpectedDeployment(payload, expectedSha)) {
+      lastStatus = "stale deployment";
+      console.log("Bootstrap reached an older Worker; retrying the same batch...");
+      await sleep(5_000);
+      continue;
+    }
     if (response.ok) {
       return payload;
     }

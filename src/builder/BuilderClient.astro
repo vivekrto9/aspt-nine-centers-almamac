@@ -5,6 +5,8 @@
 
     const studioModeCookieName = "astropages-content-studio";
     const pendingTabKey = "astropages-content-studio-tab";
+    const pendingChangesStorageKey =
+      `astropages-content-studio-pending:${window.location.pathname}:${toolbar.dataset.builderLocale || "en"}`;
     const launcherPositionKey = "astropages-content-studio-launcher-position";
     const launcher = toolbar.querySelector("[data-builder-launcher]");
     const launcherLabel = toolbar.querySelector("[data-builder-launcher-label]");
@@ -120,9 +122,97 @@
       locale: element?.dataset.builderLocale || toolbar.dataset.builderLocale || "en",
     });
     const editableElement = (element) =>
-      Boolean(element?.dataset.builderEdit && element?.dataset.builderCollection && element?.dataset.builderEntry && element?.dataset.builderField);
+      Boolean(
+        element?.hasAttribute("data-builder-edit") &&
+        element?.dataset.builderCollection &&
+        element?.dataset.builderEntry &&
+        element?.dataset.builderField
+      );
     const placeholderEditableElement = (element) =>
       editableElement(element) && (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement);
+    const currentChange = (target, field) => changes[changeKey(target, field)];
+    const activeEditMatches = (change) =>
+      Boolean(
+        activeElement &&
+        activeElement.dataset.builderField === change.field &&
+        targetKey(elementTarget(activeElement)) === targetKey(change),
+      );
+    const applyChangeToEditableSurface = (change) => {
+      const value =
+        typeof change?.value === "string"
+          ? change.value
+          : typeof change?.draftValue === "string"
+            ? change.draftValue
+            : "";
+      document.querySelectorAll("[data-builder-edit]").forEach((element) => {
+        const target = elementTarget(element);
+        if (
+          target.collection !== change.collection ||
+          target.entry !== change.entry ||
+          target.locale !== change.locale ||
+          element.dataset.builderField !== change.field
+        ) {
+          return;
+        }
+        if (placeholderEditableElement(element)) {
+          element.placeholder = value;
+        } else {
+          element.textContent = value;
+        }
+      });
+
+      const target = seoTarget();
+      if (targetKey(target) !== targetKey(change)) return;
+      inspector?.querySelectorAll("[data-builder-seo-field]").forEach((field) => {
+        if (field.dataset.builderSeoField === change.field) {
+          field.value = value;
+        }
+      });
+    };
+    const persistPendingChanges = () => {
+      if (!isStudioMode()) return;
+      try {
+        const pending = Object.values(changes);
+        if (pending.length > 0) {
+          window.sessionStorage.setItem(pendingChangesStorageKey, JSON.stringify(pending));
+        } else {
+          window.sessionStorage.removeItem(pendingChangesStorageKey);
+        }
+      } catch {
+        // Keep editing functional when browser storage is unavailable.
+      }
+    };
+    const restorePendingChanges = () => {
+      if (!isStudioMode()) return 0;
+      let pending = [];
+      try {
+        const parsed = JSON.parse(
+          window.sessionStorage.getItem(pendingChangesStorageKey) || "[]",
+        );
+        pending = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        try {
+          window.sessionStorage.removeItem(pendingChangesStorageKey);
+        } catch {
+          // Ignore unavailable browser storage and keep the server draft preview usable.
+        }
+      }
+
+      for (const change of pending) {
+        if (
+          !change?.collection ||
+          !change?.entry ||
+          !change?.locale ||
+          !change?.field ||
+          typeof change?.value !== "string"
+        ) {
+          continue;
+        }
+        changes[changeKey(change, change.field)] = change;
+        applyChangeToEditableSurface(change);
+      }
+      return dirtyTotal();
+    };
     const reviewTargets = () => {
       const targets = new Map();
       const pageTarget = defaultTarget();
@@ -168,6 +258,27 @@
         entry: target.entry,
         locale: target.locale,
       }));
+    };
+    const hydrateSavedDraftPreview = async () => {
+      if (!isStudioMode()) return;
+      await Promise.all(
+        reviewTargets().map(async (target) => {
+          try {
+            const draftChanges = await fetchDraftChanges(target);
+            if (draftChanges.length > 0) {
+              hasSavedDraft = true;
+              toolbar.dataset.builderHasSavedDraft = "true";
+              savedDraftTargets.set(targetKey(target), target);
+            }
+            draftChanges.forEach((change) => {
+              if (currentChange(change, change.field) || activeEditMatches(change)) return;
+              applyChangeToEditableSurface(change);
+            });
+          } catch {
+            // Keep other page targets hydrating; Review changes owns the error surface.
+          }
+        }),
+      );
     };
 
     const setPublishEnabled = (enabled) => {
@@ -461,6 +572,7 @@
         field,
         value,
       };
+      persistPendingChanges();
       setStatus("unsaved");
       updateDirtyCount();
       renderLocalChanges();
@@ -470,6 +582,7 @@
       const key = changeKey(target, field);
       if (!(key in changes)) return;
       delete changes[key];
+      persistPendingChanges();
       setStatus(dirtyTotal() > 0 ? "unsaved" : hasSavedDraft ? "draft" : "idle");
       renderLocalChanges();
     };
@@ -887,15 +1000,21 @@
       if (!editMode) return;
       if (toolbar.contains(event.target) || inspector?.contains(event.target)) return;
 
-      const element = event.target.closest("[data-builder-edit]");
-      if (!element) return;
-      if (!editableElement(element)) return;
+      const clicked = event.target instanceof Element ? event.target : null;
+      const element = clicked?.closest("[data-builder-edit]");
+      const interactive = clicked?.closest("a, button, [role='button']");
+      const interactiveEditable = interactive?.querySelector("[data-builder-edit]");
+      if (!element && !interactiveEditable) return;
 
       event.preventDefault();
       event.stopPropagation();
-      if (placeholderEditableElement(element)) startPlaceholderEdit(element);
-      else startTextEdit(element);
-    });
+      if (!element || !editableElement(element)) return;
+      if (placeholderEditableElement(element)) {
+        startPlaceholderEdit(element);
+      } else {
+        startTextEdit(element);
+      }
+    }, true);
 
     const postContentAction = async (target, action, groupedChanges = {}) => {
       const response = await fetch(toolbar.dataset.builderEndpoint, {
@@ -947,11 +1066,35 @@
     const commitActiveTextEdit = () => {
       if (!activeElement) return;
       const element = activeElement;
-      const newValue = (element.textContent || "").trim();
+      const newValue = placeholderEditableElement(element)
+        ? element.value.trim()
+        : (element.textContent || "").trim();
       if (newValue !== activeOriginalValue.trim()) {
         setPendingChange(element.dataset.builderField, newValue, elementTarget(element));
       }
       element.blur();
+    };
+
+    const captureActiveEditForReload = () => {
+      if (!activeElement || !editableElement(activeElement)) {
+        persistPendingChanges();
+        return;
+      }
+      const value = placeholderEditableElement(activeElement)
+        ? activeElement.value.trim()
+        : (activeElement.textContent || "").trim();
+      if (value !== activeOriginalValue.trim()) {
+        const target = elementTarget(activeElement);
+        const field = activeElement.dataset.builderField;
+        changes[changeKey(target, field)] = {
+          collection: target.collection,
+          entry: target.entry,
+          locale: target.locale,
+          field,
+          value,
+        };
+      }
+      persistPendingChanges();
     };
 
     const submitContent = async (action) => {
@@ -968,6 +1111,7 @@
             savedDraftTargets.set(targetKey(group.target), group.target);
           }
           Object.keys(changes).forEach((field) => delete changes[field]);
+          persistPendingChanges();
         } else {
           const targets = new Map();
           savedDraftTargets.forEach((target) => targets.set(targetKey(target), target));
@@ -1068,6 +1212,11 @@
         positionOpenPanels();
       }
     });
+    window.addEventListener("beforeunload", captureActiveEditForReload);
+    window.addEventListener("pagehide", captureActiveEditForReload);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") captureActiveEditForReload();
+    });
 
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
@@ -1078,7 +1227,6 @@
     });
 
     restoreLauncherPosition();
-    updateSeoPreviews();
     const pendingTab = window.sessionStorage.getItem(pendingTabKey);
     if (pendingTab && isStudioMode()) {
       window.sessionStorage.removeItem(pendingTabKey);
@@ -1094,5 +1242,23 @@
         openInspector(pendingTab);
       }
     }
+    const initializeEditablePreview = async () => {
+      const restoredChanges = restorePendingChanges();
+      updateSeoPreviews();
+      if (restoredChanges > 0) {
+        editMode = true;
+        if (editToggle) editToggle.checked = true;
+        document.body.setAttribute("data-builder-edit-mode", "");
+        setDockVisible(true);
+        setStatus("unsaved");
+        renderLocalChanges();
+      }
+      await hydrateSavedDraftPreview();
+      updateSeoPreviews();
+      if (restoredChanges === 0 && hasSavedDraft) {
+        setStatus("draft");
+      }
+    };
+    void initializeEditablePreview();
   })();
 </script>

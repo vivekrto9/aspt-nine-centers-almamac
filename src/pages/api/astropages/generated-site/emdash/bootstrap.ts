@@ -1,3 +1,4 @@
+import { buildSha } from "../../../../../server/generated-site/build-identity.ts";
 import type { APIRoute } from "astro";
 
 import { safeString } from "../../../../../server/aggregator/runtime.ts";
@@ -8,7 +9,7 @@ import { requireContentReleaseServiceAuth } from "../content-release/auth.ts";
 
 export const prerender = false;
 
-const feature = "astropages-base-template.generated-site-emdash.bootstrap";
+const feature = "aspt-nine-centers-almamac.generated-site-emdash.bootstrap";
 
 const bearerToken = (request: Request) => {
   const header = request.headers.get("authorization") ?? "";
@@ -73,7 +74,7 @@ export const POST: APIRoute = async (context) => {
       state: "ready",
       feature,
       message: "Generated-site EmDash content is bootstrapped.",
-      data: result,
+      data: { ...result, buildSha },
     });
   } catch (error) {
     return errorResponse(
