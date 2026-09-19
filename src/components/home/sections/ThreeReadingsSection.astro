@@ -9,9 +9,23 @@ const {
   quote = null,
 } = Astro.props;
 const displayAmount = quote?.amount || "$99.00";
+const displayCurrency = quote?.currency || "USD";
+const paymentProviderLabel = quote?.provider === "razorpay" ? "Razorpay" : "Stripe";
+const displayNote = quote?.currency
+  ? note.replace(/^(?:USD|INR|AUTO)\b/i, displayCurrency)
+  : note;
+const analyticsAmount = Number.isSafeInteger(quote?.amountMinor)
+  ? quote.amountMinor / 100
+  : 99;
 ---
 
-<section id="readings" class="readings-section" data-readings-section>
+<section
+  id="readings"
+  class="readings-section"
+  data-readings-section
+  data-checkout-amount={analyticsAmount}
+  data-checkout-currency={displayCurrency}
+>
   <div class="section-header-grid">
     <span class="section-number" aria-hidden="true">04</span>
     <div class="section-title-wrap">
@@ -47,7 +61,7 @@ const displayAmount = quote?.amount || "$99.00";
     </div>
   </article>
 
-  <p class="readings-footer-note" {...noteEdit}>{note}</p>
+  <p class="readings-footer-note" {...noteEdit}>{displayNote}</p>
 </section>
 
 <dialog class="checkout-dialog" data-checkout-dialog aria-labelledby="checkout-title">
@@ -79,9 +93,9 @@ const displayAmount = quote?.amount || "$99.00";
         />
         <p class="checkout-error" data-checkout-error role="alert" hidden></p>
         <button class="checkout-submit" type="submit" data-checkout-submit>
-          Continue to Stripe — $99
+          Continue to {paymentProviderLabel} — {displayAmount}
         </button>
-        <p class="checkout-security">Secure payment details are entered on Stripe.</p>
+        <p class="checkout-security">Secure payment details are entered on {paymentProviderLabel}.</p>
       </form>
     </div>
   </div>
@@ -119,6 +133,9 @@ const displayAmount = quote?.amount || "$99.00";
   const ownedDialog = document.querySelector<HTMLDialogElement>("[data-purchase-owned-dialog]");
   const ownedLink = ownedDialog?.querySelector<HTMLAnchorElement>("[data-purchase-owned-link]");
   const ownedOrder = ownedDialog?.querySelector<HTMLElement>("[data-purchase-owned-order]");
+  const readingsSection = document.querySelector<HTMLElement>("[data-readings-section]");
+  const checkoutAmount = Number(readingsSection?.dataset.checkoutAmount || "99");
+  const checkoutCurrency = readingsSection?.dataset.checkoutCurrency || "USD";
   let razorpayIdleLabel = submit?.textContent || "Continue to secure checkout";
 
   type PaidAccess = { paid: boolean; chartUrl?: string; orderNumber?: string };
@@ -180,7 +197,7 @@ const displayAmount = quote?.amount || "$99.00";
         window.astroPagesTrack?.("owned_reading_opened", { offer: "full-reading", order_number: paidAccess.orderNumber });
         return;
       }
-      window.astroPagesTrack?.("checkout_opened", { offer: "full-reading", amount: 99, currency: "USD" });
+      window.astroPagesTrack?.("checkout_opened", { offer: "full-reading", amount: checkoutAmount, currency: checkoutCurrency });
       dialog?.showModal();
       requestAnimationFrame(() => email?.focus());
     });

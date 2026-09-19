@@ -50,7 +50,8 @@ export const POST: APIRoute = async (context) => {
   const paymentStatus = String(session?.payment_status || "");
   if (!/^hd_order_[A-Za-z0-9]+$/.test(orderId) || !/^cs_/.test(sessionId)) return new Response("Invalid order reference.", { status: 400 });
   if (paymentStatus === "unpaid") return Response.json({ received: true });
-  if (Number(session?.amount_total) !== 9900 || String(session?.currency || "").toLowerCase() !== "usd") {
+  const order = await (env.DB as any)?.prepare("SELECT amount_minor, currency FROM ap_human_design_orders WHERE id = ? LIMIT 1").bind(orderId).first?.() as any;
+  if (!order || Number(session?.amount_total) !== Number(order.amount_minor) || String(session?.currency || "").toUpperCase() !== order.currency || order.currency !== "USD") {
     return new Response("Paid amount does not match the order.", { status: 400 });
   }
   try {

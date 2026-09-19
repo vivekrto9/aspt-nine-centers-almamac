@@ -47,9 +47,17 @@ test("Readings section uses resolved pricing and hands payment to the selected p
   const checkout = read("src/pages/api/checkout/full-reading.ts");
   const webhook = read("src/pages/api/checkout/stripe-webhook.ts");
   const orders = read("src/server/capabilities/vendor/astropages-capabilities/human-design-orders.ts");
+  const home = read("src/pages/index.astro");
   assert.equal(readings.includes("One reading, one payment"), true);
   assert.equal(readings.includes("The full reading"), true);
   assert.equal(readings.includes("displayAmount"), true);
+  assert.equal(home.includes("getPaymentQuote"), true);
+  assert.equal(home.includes("currency: quote.currency"), true);
+  assert.equal(home.includes("provider: quote.provider"), true);
+  assert.equal(home.includes("quote={readingQuote}"), true);
+  assert.equal(readings.includes("data-checkout-currency={displayCurrency}"), true);
+  assert.equal(readings.includes("Continue to {paymentProviderLabel} — {displayAmount}"), true);
+  assert.equal(readings.includes("amount: 99, currency: \"USD\""), false);
   assert.equal(readings.includes("backdrop_color: \"#16100D\""), true);
   assert.equal(readings.includes("color: \"#D8F546\""), true);
   assert.equal(readings.includes("backdropclose: true"), true);
@@ -71,6 +79,7 @@ test("Readings section uses resolved pricing and hands payment to the selected p
   assert.equal(webhook.includes('resolveSecretBinding(env, "STRIPE_WEBHOOK_SECRET")'), true);
   assert.equal(webhook.includes("verifyStripeSignature"), true);
   assert.equal(webhook.includes("checkout.session.completed"), true);
+  assert.equal(webhook.includes("SELECT amount_minor, currency FROM ap_human_design_orders"), true);
   assert.equal(read("src/pages/api/checkout/razorpay-webhook.ts").includes("payment.captured"), true);
   assert.equal(orders.includes("RETURNING id, order_number, email, payment_status"), true);
 });
