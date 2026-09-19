@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { resolveSecretBinding } from "../../../server/aggregator/runtime-bindings.ts";
 import { getRuntimeEnv, readJsonBody, requirePost } from "../../../server/generated-site/request.ts";
 import { errorResponse } from "../../../server/generated-site/responses.ts";
+import { getPaymentQuote } from "../../../server/aggregator/payment-pricing.ts";
 import { attachStripeCheckoutSession, createHumanDesignOrder, failHumanDesignOrder, getPaidHumanDesignReadingAccess } from "../../../server/capabilities/vendor/astropages-capabilities/human-design-orders.ts";
 
 const feature = "nine-centres.checkout.full-reading";
@@ -37,7 +38,10 @@ export const POST: APIRoute = async (context) => {
       }, { status: 409, headers: { "cache-control": "private, no-store" } });
     }
   }
-  const stripeSecretKey = await resolveSecretBinding(env, "STRIPE_SECRET_KEY");
+  let quote;
+  try { quote = await getPaymentQuote(env, context.request); }
+  catch (error) { return errorResponse(feature, error instanceof Error ? error.message : "Payment pricing is not configured.", 503); }
+  const stripeSecretKey = await resolveSecretBinding(env, quote.provider === "stripe" ? "STRIPE_SECRET_KEY" : "RAZORPAY_KEY_ID");
   if (!stripeSecretKey) {
     return errorResponse(feature, "Secure checkout is not configured yet.", 503);
   }
@@ -48,6 +52,8 @@ export const POST: APIRoute = async (context) => {
       email,
       readingId,
       locale: context.request.headers.get("accept-language") || "en",
+      amountMinor: quote.amountMinor,
+      currency: quote.currency,
     });
   } catch (caught) {
     return errorResponse(feature, caught instanceof Error ? caught.message : "Checkout could not be started.", 503);
@@ -76,8 +82,8 @@ export const POST: APIRoute = async (context) => {
   const successHash = order.readingId ? "#bodygraph" : "#readings";
   form.set("success_url", `${siteOrigin}${successPath}?checkout=success&session_id={CHECKOUT_SESSION_ID}${successHash}`);
   form.set("cancel_url", `${siteOrigin}/?checkout=cancelled#readings`);
-  form.set("line_items[0][price_data][currency]", "usd");
-  form.set("line_items[0][price_data][unit_amount]", "9900");
+  form.set("line_items[0][price_data][currency]", quote.currency.toLowerCase());
+  form.set("line_items[0][price_data][unit_amount]", String(quote.amountMinor));
   form.set("line_items[0][price_data][product_data][name]", "The full reading");
   form.set("line_items[0][price_data][product_data][description]", "A complete Human Design reading with recording, chart file, and notes.");
   form.set("line_items[0][quantity]", "1");
@@ -86,6 +92,19 @@ export const POST: APIRoute = async (context) => {
   if (order.readingId) form.set("metadata[reading_id]", order.readingId);
 
   try {
+    if (quote.provider === "razorpay") {
+      const keySecret = await resolveSecretBinding(env, "RAZORPAY_KEY_SECRET");
+      if (!keySecret) return errorResponse(feature, "Secure checkout is not configured yet.", 503);
+      const response = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: { Authorization: ["Basic", btoa(`${stripeSecretKey}:${keySecret}`)].join(" "), "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: quote.amountMinor, currency: "INR", receipt: order.orderNumber }),
+      });
+      const payload = await response.json() as { id?: string };
+      if (!response.ok || !payload.id) return errorResponse(feature, "Secure checkout could not be opened. Please try again.", 502);
+      await (env.DB as any)?.prepare("UPDATE ap_human_design_orders SET razorpay_order_id = ?, updated_at = ? WHERE id = ?").bind(payload.id, new Date().toISOString(), order.id).run?.();
+      return Response.json({ ok: true, provider: "razorpay", keyId: stripeSecretKey, razorpayOrderId: payload.id, amount: quote.amountMinor, currency: quote.currency, orderId: order.id });
+    }
     const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
       headers: {

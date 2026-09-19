@@ -6,7 +6,9 @@ const {
   eyebrowEdit = {},
   titleEdit = {},
   noteEdit = {},
+  quote = null,
 } = Astro.props;
+const displayAmount = quote?.amount || "$99.00";
 ---
 
 <section id="readings" class="readings-section" data-readings-section>
@@ -36,11 +38,11 @@ const {
 
     <div class="offer-purchase">
       <div>
-        <p class="offer-price">$99</p>
+        <p class="offer-price">{displayAmount}</p>
         <p class="offer-meta">One-time · yours forever</p>
       </div>
       <button class="offer-cta" type="button" data-checkout-open>
-        Unlock everything — $99
+        Unlock everything — {displayAmount}
       </button>
     </div>
   </article>
@@ -61,7 +63,7 @@ const {
           <h2 id="checkout-title">The full reading</h2>
           <p>One-time · yours forever</p>
         </div>
-        <strong>$99</strong>
+        <strong>{displayAmount}</strong>
       </div>
 
       <form class="checkout-form" data-checkout-form novalidate>
@@ -117,6 +119,7 @@ const {
   const ownedDialog = document.querySelector<HTMLDialogElement>("[data-purchase-owned-dialog]");
   const ownedLink = ownedDialog?.querySelector<HTMLAnchorElement>("[data-purchase-owned-link]");
   const ownedOrder = ownedDialog?.querySelector<HTMLElement>("[data-purchase-owned-order]");
+  let razorpayIdleLabel = submit?.textContent || "Continue to secure checkout";
 
   type PaidAccess = { paid: boolean; chartUrl?: string; orderNumber?: string };
   let paidAccess: PaidAccess | null = null;
@@ -158,6 +161,14 @@ const {
     error.hidden = !message;
   };
 
+  const clearRazorpayState = (message = "") => {
+    if (submit) {
+      submit.disabled = false;
+      submit.textContent = razorpayIdleLabel;
+    }
+    if (message) showError(message);
+  };
+
   document.querySelectorAll<HTMLButtonElement>("[data-checkout-open]").forEach((trigger) => {
     trigger.addEventListener("click", async () => {
       showError();
@@ -195,7 +206,7 @@ const {
 
     if (!submit) return;
     submit.disabled = true;
-    const idleLabel = submit.textContent;
+    razorpayIdleLabel = submit.textContent;
     submit.textContent = "Opening secure checkout…";
 
     try {
@@ -207,7 +218,7 @@ const {
           readingId: window.localStorage.getItem("hd:last-reading-id") || undefined,
         }),
       });
-      const payload = await response.json() as { url?: string; orderId?: string; message?: string; alreadyPurchased?: boolean; chartUrl?: string; orderNumber?: string };
+      const payload = await response.json() as { url?: string; provider?: string; keyId?: string; razorpayOrderId?: string; amount?: number; currency?: string; orderId?: string; message?: string; alreadyPurchased?: boolean; chartUrl?: string; orderNumber?: string };
 
       if (payload.alreadyPurchased && payload.chartUrl) {
         paidAccess = { paid: true, chartUrl: payload.chartUrl, orderNumber: payload.orderNumber };
@@ -217,16 +228,51 @@ const {
         return;
       }
 
-      if (!response.ok || !payload.url) {
+      if (!response.ok || (!payload.url && payload.provider !== "razorpay")) {
         throw new Error(payload.message || "Checkout could not be opened. Please try again.");
       }
 
       window.astroPagesTrack?.("checkout_created", { offer: "full-reading", order_id: payload.orderId });
-      window.location.assign(payload.url);
+      if (payload.provider === "razorpay" && payload.keyId && payload.razorpayOrderId) {
+        const razorpay = (window as any).Razorpay;
+        if (!razorpay) throw new Error("Razorpay checkout is unavailable. Please try again.");
+        const instance = new razorpay({
+          key: payload.keyId,
+          amount: payload.amount,
+          currency: payload.currency,
+          name: "Nine Centres",
+          description: "The full reading",
+          order_id: payload.razorpayOrderId,
+          prefill: { email: email.value.trim() },
+          theme: { color: "#D8F546", backdrop_color: "#16100D" },
+          modal: {
+            escape: true,
+            backdropclose: true,
+            confirm_close: false,
+            handleback: true,
+            ondismiss: () => {
+              clearRazorpayState();
+              if (dialog && !dialog.open) dialog.showModal();
+            },
+          },
+          handler: () => {
+            clearRazorpayState();
+            window.location.reload();
+          },
+        });
+        instance.on?.("payment.failed", () => {
+          instance.close?.();
+          clearRazorpayState("Payment failed. You can try again.");
+          if (dialog && !dialog.open) dialog.showModal();
+        });
+        dialog?.close();
+        instance.open();
+      } else if (payload.url) window.location.assign(payload.url);
     } catch (caught) {
       showError(caught instanceof Error ? caught.message : "Checkout could not be opened. Please try again.");
       submit.disabled = false;
-      submit.textContent = idleLabel;
+      submit.textContent = razorpayIdleLabel;
+      if (dialog && !dialog.open) dialog.showModal();
       window.astroPagesTrack?.("checkout_failed", { offer: "full-reading" });
     }
   });
@@ -278,6 +324,8 @@ const {
   returnNotice?.querySelector("[data-checkout-return-close]")?.addEventListener("click", () => { returnNotice.hidden = true; });
   void refreshPurchaseState();
 </script>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js" is:inline></script>
 
 <style>
   .readings-section { padding: 104px 32px 0; }

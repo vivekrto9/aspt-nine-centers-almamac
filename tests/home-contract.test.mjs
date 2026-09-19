@@ -42,14 +42,21 @@ test("Five Types section contains all five human design energy types", () => {
   assert.match(typesAstro, /\.type-trigger:focus-visible \.type-share[\s\S]*?color:\s*#FFFFFF/);
 });
 
-test("Readings section provides one $99 offer and hands payment to Stripe Checkout", () => {
+test("Readings section uses resolved pricing and hands payment to the selected provider", () => {
   const readings = read("src/components/home/sections/ThreeReadingsSection.astro");
   const checkout = read("src/pages/api/checkout/full-reading.ts");
   const webhook = read("src/pages/api/checkout/stripe-webhook.ts");
   const orders = read("src/server/capabilities/vendor/astropages-capabilities/human-design-orders.ts");
   assert.equal(readings.includes("One reading, one payment"), true);
   assert.equal(readings.includes("The full reading"), true);
-  assert.equal(readings.includes("Unlock everything — $99"), true);
+  assert.equal(readings.includes("displayAmount"), true);
+  assert.equal(readings.includes("backdrop_color: \"#16100D\""), true);
+  assert.equal(readings.includes("color: \"#D8F546\""), true);
+  assert.equal(readings.includes("backdropclose: true"), true);
+  assert.equal(readings.includes("ondismiss: () => {"), true);
+  assert.equal(readings.includes("payment.failed"), true);
+  assert.equal(readings.includes("dialog?.close();"), true);
+  assert.equal(readings.includes("if (dialog && !dialog.open) dialog.showModal();"), true);
   assert.equal(readings.includes('fetch("/api/checkout/full-reading"'), true);
   assert.equal(readings.includes("You already own this reading"), true);
   assert.equal(readings.includes("/api/checkout/reading-access?reading_id="), true);
@@ -57,13 +64,14 @@ test("Readings section provides one $99 offer and hands payment to Stripe Checko
   assert.match(readings, /\.offer-price\s*\{\s*font-size:\s*clamp\(96px, 10vw, 152px\)/);
   assert.equal(readings.includes("card number"), false);
   assert.equal(checkout.includes("https://api.stripe.com/v1/checkout/sessions"), true);
-  assert.equal(checkout.includes('form.set("line_items[0][price_data][unit_amount]", "9900")'), true);
-  assert.equal(checkout.includes('resolveSecretBinding(env, "STRIPE_SECRET_KEY")'), true);
+  assert.equal(checkout.includes("quote.amountMinor"), true);
+  assert.equal(checkout.includes("api.razorpay.com/v1/orders"), true);
   assert.equal(checkout.includes("createHumanDesignOrder"), true);
   assert.equal(checkout.includes("alreadyPurchased: true"), true);
   assert.equal(webhook.includes('resolveSecretBinding(env, "STRIPE_WEBHOOK_SECRET")'), true);
   assert.equal(webhook.includes("verifyStripeSignature"), true);
   assert.equal(webhook.includes("checkout.session.completed"), true);
+  assert.equal(read("src/pages/api/checkout/razorpay-webhook.ts").includes("payment.captured"), true);
   assert.equal(orders.includes("RETURNING id, order_number, email, payment_status"), true);
 });
 
