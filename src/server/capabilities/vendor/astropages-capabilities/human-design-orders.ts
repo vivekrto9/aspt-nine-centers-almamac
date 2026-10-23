@@ -10,11 +10,15 @@ export const createHumanDesignOrder = async ({
   email,
   readingId,
   locale = "en",
+  amountMinor = 9900,
+  currency = "USD",
 }: {
   env: RuntimeEnv;
   email: unknown;
   readingId?: unknown;
   locale?: string;
+  amountMinor?: number;
+  currency?: "USD" | "INR";
 }) => {
   if (!env.DB) throw new Error("Checkout storage is not available.");
   const normalizedEmail = normalizeLeadEmail(email);
@@ -27,8 +31,8 @@ export const createHumanDesignOrder = async ({
   await env.DB.prepare(`INSERT INTO ${AP_TABLES.humanDesignOrders} (
     id, order_number, reading_id, email, normalized_email, amount_minor, currency,
     business_status, payment_status, fulfillment_status, created_at, updated_at
-  ) VALUES (?, ?, ?, ?, ?, 9900, 'USD', 'new', 'pending', 'pending', ?, ?)`)
-    .bind(id, orderNumber, safeReadingId || null, normalizedEmail, normalizedEmail, timestamp, timestamp).run?.();
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', 'pending', 'pending', ?, ?)`)
+    .bind(id, orderNumber, safeReadingId || null, normalizedEmail, normalizedEmail, amountMinor, currency, timestamp, timestamp).run?.();
   await linkBusinessLead({
     env,
     submission: {
@@ -93,17 +97,19 @@ export const fulfillHumanDesignOrder = async ({
   orderId,
   checkoutSessionId,
   paymentIntentId,
+  provider = "stripe",
 }: {
   env: RuntimeEnv;
   orderId: string;
   checkoutSessionId: string;
   paymentIntentId: string;
+  provider?: "stripe" | "razorpay";
 }) => {
   if (!env.DB) throw new Error("Order storage is unavailable.");
   const timestamp = nowIso();
   const order = await env.DB.prepare(`UPDATE ${AP_TABLES.humanDesignOrders}
     SET payment_status = 'paid', business_status = 'confirmed', fulfillment_status = 'queued',
-        stripe_checkout_session_id = ?, stripe_payment_intent_id = ?, paid_at = ?, updated_at = ?
+        ${provider === "razorpay" ? "razorpay_order_id = ?, razorpay_payment_id = ?" : "stripe_checkout_session_id = ?, stripe_payment_intent_id = ?"}, paid_at = ?, updated_at = ?
     WHERE id = ? AND payment_status != 'paid'
     RETURNING id, order_number, email, payment_status`)
     .bind(checkoutSessionId, paymentIntentId || null, timestamp, timestamp, orderId).first?.() as { id: string; order_number: string; email: string; payment_status: string } | null | undefined;
