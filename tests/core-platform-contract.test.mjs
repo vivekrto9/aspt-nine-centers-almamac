@@ -38,6 +38,7 @@ const runtimeTables = [
   "ap_analytics_deliveries",
   "ap_email_deliveries",
   "ap_booking_preview_policy",
+  "ap_workspace_authored_state",
 ];
 
 test("template manifest declares core platform metadata without generated-site admin", () => {

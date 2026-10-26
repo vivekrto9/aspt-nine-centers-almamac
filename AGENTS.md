@@ -87,6 +87,24 @@ Do not add a booking, order, payment, report, shop, provider, or generic lead en
 
 Email tools are preview-only. Production promotion remains with the control plane; never promote by raw SQL, row copying, provider calls, or an invented publish tool.
 
+## Payment Currency Contract
+
+This target's existing Human Design checkout reuses the existing order table.
+Apply forward-only migrations `0011_payment_preference.sql` through
+`0015_full_reading_inr_price.sql`. The project-owned D1 row
+`ap_business_settings.payment_preference` stores `{ value, schemaVersion: 1,
+revision }`; fresh environments persist `AUTO` revision 1 and valid existing
+values survive upgrades. The signed service endpoint is
+`/api/astropages/generated-site/payment-settings/v1`, with GET/PATCH restricted
+to `USD`, `INR`, `AUTO` and compare-and-set revisions. No product-price API or
+AI/MCP payment-setting tool is registered.
+
+AUTO trusted India uses the stored INR price `659900` minor units (Rs 6,599) and
+Razorpay; other/unknown country uses the stored USD price `9900` minor units
+($99) and Stripe. No new order table is introduced. Existing order records and
+historical money remain unchanged. See `docs/PAYMENT_CURRENCY.md` for commands
+and evidence.
+
 ## Completion Contract
 
 - Run the exact test command supplied by the work package; it takes precedence over broader guidance. When no narrower command exists for authorized code work, the current complete local gate is `pnpm run project-assets:contract`, `pnpm run sales:contract`, `pnpm run users-data:contract`, `pnpm run secrets:contract`, `pnpm run test`, `pnpm run scan:safety`, `pnpm run d1:schema:check`, `pnpm run cloudflare:contract`, `pnpm run typecheck`, `pnpm run build`, then `git diff --check`, run serially.
